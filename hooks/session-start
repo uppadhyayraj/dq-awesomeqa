@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+escape_for_json() {
+    local s="$1"
+    s="${s//\\/\\\\}"
+    s="${s//\"/\\\"}"
+    s="${s//$'\n'/\\n}"
+    s="${s//$'\r'/\\r}"
+    s="${s//$'\t'/\\t}"
+    printf '%s' "$s"
+}
+
+SKILL_INDEX="$(cat <<'SKILLS'
+# dq-awesomeqa — QA Lifecycle Plugin
+
+You have the dq-awesomeqa plugin. Use the Skill tool to invoke skills.
+
+## Lifecycle order
+
+1. /qa-setup      — once per machine: install a11y-cli, dq-nbomber, DQ MCP server
+2. /qa-onboard    — once per project: collect URLs/schema/a11y level → dq-qa.config.json
+3. /qa-plan       — unified QA strategy across all enabled domains
+4. /qa-impact     — when requirements change: update the plan
+5. Domain execution (any order based on risk):
+   - /qa-ui       — Playwright E2E + visual tests
+   - /qa-api      — API plan → generate → heal
+   - /qa-a11y     — WCAG accessibility audit
+   - /qa-perf     — load test scaffold + analysis
+6. /qa-triage     — categorize failures from any domain
+7. /qa-coverage   — find coverage gaps
+8. /qa-codegen    — generate test code / fix tests
+9. /qa-report     — unified summary across all domains
+
+## Config contract
+
+All skills (except qa-setup) read `dq-qa.config.json` from the project root.
+If not found, invoke qa-onboard before proceeding.
+SKILLS
+)"
+
+session_context="<IMPORTANT>\nYou have the dq-awesomeqa QA lifecycle plugin.\n\n$(escape_for_json "$SKILL_INDEX")\n</IMPORTANT>"
+
+escaped_context=$(escape_for_json "$session_context")
+
+if [ -n "${CURSOR_PLUGIN_ROOT:-}" ]; then
+  printf '{\n  "additional_context": "%s"\n}\n' "$escaped_context"
+elif [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -z "${COPILOT_CLI:-}" ]; then
+  printf '{\n  "hookSpecificOutput": {\n    "hookEventName": "SessionStart",\n    "additionalContext": "%s"\n  }\n}\n' "$escaped_context"
+else
+  printf '{\n  "additionalContext": "%s"\n}\n' "$escaped_context"
+fi
+
+exit 0
