@@ -136,3 +136,8 @@ Based on all findings, determine one of:
 > <If FAIL:> "Do not proceed to release. <N> P0 issues must be resolved. See the Open Items section."
 > <If PASS WITH RISK:> "Release is possible but the following risks should be accepted by the product owner: <list>"
 > <If PASS:> "All quality gates met. The application is ready for release based on the tests executed."
+>
+> **Recommended next steps:**
+> - Share `qa-summary.md` with stakeholders and the product owner
+> - If any P0 or P1 items remain open: run `/qa-triage` to assign owners and track resolution
+> - If coverage gaps were identified: run `/qa-codegen` to generate missing tests before the next cycle

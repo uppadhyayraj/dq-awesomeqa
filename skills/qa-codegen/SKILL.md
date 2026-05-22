@@ -122,3 +122,8 @@ Follow the qa-a11y exploration flow to build the audit YAML. Save to `./tests/a1
 >
 > **To run:**
 > - <exact command per domain>
+>
+> **Recommended next steps:**
+> - Run the generated tests or hand off the config to the user to execute
+> - Run `/qa-triage` if the newly generated tests surface failures
+> - Run `/qa-coverage` to verify the gaps identified earlier are now closed
