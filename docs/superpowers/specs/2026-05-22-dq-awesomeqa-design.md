@@ -63,7 +63,10 @@ dq-awesomeqa/
 │   └── qa-report/
 │       └── SKILL.md
 └── hooks/
-    └── qa-safety.js
+    ├── qa-safety.js      ← PreToolUse guard
+    ├── session-start     ← SessionStart: injects skill index into context
+    ├── stop              ← Stop: emits progress + token/cost status line
+    └── run-hook.cmd      ← cross-platform bash wrapper (Windows support)
 ```
 
 ---
@@ -326,7 +329,7 @@ Skills that don't find `dq-qa.config.json` automatically invoke `qa-onboard` bef
 | UI E2E | Playwright HTML reporter + trace viewer | HTML + videos | `domains.ui.reportDir` |
 | API | Playwright / Jest reporter | HTML | `domains.api.reportDir` |
 | Accessibility | accessibility-cli | HTML + JSON | `domains.accessibility.reportDir` |
-| Performance | nbomber-cli | HTML | `domains.performance.reportDir` |
+| Performance | nbomber-cli HTML + `dq-nbomber trend` interactive dashboard | HTML | `domains.performance.reportDir` |
 | Unified | `qa-report` skill | Markdown | `./qa-summary.md` |
 
 ---
@@ -335,24 +338,49 @@ Skills that don't find `dq-qa.config.json` automatically invoke `qa-onboard` bef
 
 | Domain | Generation tool | Output |
 |--------|----------------|--------|
-| API | `api_generator` (DQ MCP server) | Playwright / Jest / Postman test files |
-| Performance | `dq-nbomber generate <spec>` | `dq-nbomber.yaml` + data CSVs |
+| API | `api_project_setup` → `api_generator` (DQ MCP server) | Playwright / Jest / Postman test files (auto-detects existing framework) |
+| Performance (config) | `dq-nbomber generate <schemaUrl>` | `dq-nbomber.yaml` + data CSVs |
+| Performance (code) | `dq-nbomber export <yaml> [--format project]` | `Program.cs` + optional `LoadTest.csproj` (runnable NBomber C# program) |
 | UI E2E | `a11y-cli` playwright-cli exploration | YAML interaction scripts |
 | Accessibility | `a11y-cli` session + snapshot | YAML audit scripts |
 
 `qa-codegen` orchestrates these — it never writes test code from scratch.
 
+### Performance code generation detail
+`dq-nbomber export` produces a self-contained NBomber 6.x C# program:
+- `--format file` (default) — single `Program.cs` using `#:package` directives, requires .NET 10+
+- `--format project` — `Program.cs` + `LoadTest.csproj`, compatible with .NET 8/9
+
+`qa-codegen` asks which .NET version the project targets before choosing the export format.
+
 ---
 
-## Safety Hook
+## Hooks
 
-`hooks/qa-safety.js` is a PreToolUse guard that blocks:
-- Destructive filesystem operations during test runs (`rm -rf`, etc.)
+### Safety Hook — `hooks/qa-safety.js` (PreToolUse)
+Guards against destructive or out-of-scope operations during QA runs:
+- Destructive filesystem operations (`rm -rf`, etc.)
 - Writing to application source files (QA role is read + test, not modify)
 - Privilege escalation (`sudo`)
-- Any command outside the QA toolchain during an active audit
+- Commands outside the QA toolchain during an active audit
 
 Pattern mirrors the accessibility-cli safety hook.
+
+### Session Start Hook — `hooks/session-start` (SessionStart)
+Injects the `using-dq-awesomeqa` context at session start so Claude always knows the available skills and their lifecycle order. Pattern mirrors superpowers' session-start hook — reads the skill index and emits it as `additionalContext`. Cross-platform via `hooks/run-hook.cmd` wrapper (same pattern as superpowers).
+
+### Progress + Token Hook — `hooks/stop` (Stop)
+Fires at the end of every Claude turn during an active QA session. Emits a one-line status bar showing:
+- Current active skill and step completed
+- Tokens used this turn + cumulative session tokens
+- Cost estimate for the session
+
+Format example:
+```
+[dq-awesomeqa] qa-api › plan generated ✓  |  turn: 2.1k tokens  |  session: 18.4k tokens (~$0.03)
+```
+
+This gives QA engineers the same turn-by-turn cost visibility that superpowers users expect without requiring any manual `/status` checks.
 
 ---
 
