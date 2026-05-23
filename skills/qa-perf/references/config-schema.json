@@ -1,0 +1,347 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "dq-nbomber Config",
+  "description": "Root configuration file (dq-nbomber.yaml) for dq-nbomber load tests.",
+  "type": "object",
+  "required": ["scenarios"],
+  "properties": {
+    "nbomber": { "$ref": "#/definitions/NbomberPassthroughConfig" },
+    "cluster":  { "$ref": "#/definitions/ClusterConfig" },
+    "report":   { "$ref": "#/definitions/ReportConfig" },
+    "sinks": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/SinkConfig" }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/ScenarioConfig" }
+    }
+  },
+  "definitions": {
+
+    "NbomberPassthroughConfig": {
+      "type": "object",
+      "description": "Settings passed directly to the NBomber runner.",
+      "properties": {
+        "config":                 { "type": "string", "description": "Path to a native NBomber JSON config file." },
+        "infra":                  { "type": "string", "description": "Path to a native NBomber infra config file." },
+        "license":                { "type": "string", "description": "NBomber license key (or ${NBOMBER_LICENSE})." },
+        "sessionId":              { "type": "string", "description": "Custom session identifier for this run." },
+        "displayConsoleMetrics":  { "type": "boolean", "description": "Show live metrics in the console (default: true)." },
+        "target": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Run only the listed scenario names."
+        }
+      }
+    },
+
+    "ClusterConfig": {
+      "type": "object",
+      "description": "Cluster mode settings for distributed load testing.",
+      "properties": {
+        "localDev":            { "type": "boolean", "description": "Enable local cluster mode (single machine)." },
+        "agentsCount":         { "type": "integer", "description": "Number of agent nodes expected." },
+        "agentGroup":          { "type": "string",  "description": "Agent group name." },
+        "clusterId":           { "type": "string",  "description": "Unique cluster identifier." },
+        "nodeType":            { "type": "string",  "enum": ["coordinator", "agent"], "description": "Role of this node." },
+        "natsUrl":             { "type": "string",  "description": "NATS server URL for cluster coordination." },
+        "coordinatorTarget":   { "type": "array", "items": { "type": "string" }, "description": "Scenario names run by the coordinator." },
+        "agentTarget":         { "type": "array", "items": { "type": "string" }, "description": "Scenario names run by agents." }
+      }
+    },
+
+    "ReportConfig": {
+      "type": "object",
+      "description": "Output report settings.",
+      "properties": {
+        "folder":   { "type": "string", "default": "reports", "description": "Directory to write reports into." },
+        "fileName": { "type": "string", "default": "report",  "description": "Base file name (without extension)." },
+        "formats": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["html", "md", "txt", "csv"] },
+          "default": ["html", "md", "txt", "csv"],
+          "description": "Report formats to generate."
+        }
+      }
+    },
+
+    "SinkConfig": {
+      "type": "object",
+      "description": "Time-series sink for streaming metrics.",
+      "required": ["kind"],
+      "properties": {
+        "kind":     { "type": "string", "enum": ["influxdb", "timescale", "grafana"], "description": "Sink type." },
+        "url":      { "type": "string", "description": "Connection URL." },
+        "database": { "type": "string", "description": "Database / bucket name (InfluxDB v1 / TimescaleDB)." },
+        "bucket":   { "type": "string", "description": "Bucket name (InfluxDB v2)." },
+        "token":    { "type": "string", "description": "Auth token (InfluxDB v2)." },
+        "username": { "type": "string" },
+        "password": { "type": "string" },
+        "extra":    { "type": "object", "additionalProperties": { "type": "string" }, "description": "Driver-specific key-value pairs." }
+      }
+    },
+
+    "ScenarioConfig": {
+      "type": "object",
+      "description": "A single load test scenario (user journey).",
+      "required": ["name", "steps", "loadSimulations"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "description": "Unique scenario name — snake_case, lowercase."
+        },
+        "dataFeeds": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/DataFeedConfig" },
+          "description": "Data sources supplying per-virtual-user row data."
+        },
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/StepConfig" },
+          "description": "Ordered list of steps executed per iteration."
+        },
+        "loadSimulations": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/LoadSimulationConfig" },
+          "description": "Load profile phases executed in sequence."
+        },
+        "thresholds": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ThresholdConfig" },
+          "description": "Pass/fail gates for CI/CD."
+        },
+        "warmUp": { "$ref": "#/definitions/WarmUpConfig" },
+        "weight": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Relative virtual-user weight when multiple scenarios share a simulation."
+        },
+        "init":  { "type": "string", "description": "Shell command or script run once before the scenario starts." },
+        "clean": { "type": "string", "description": "Shell command or script run once after the scenario finishes." }
+      }
+    },
+
+    "DataFeedConfig": {
+      "type": "object",
+      "required": ["file"],
+      "properties": {
+        "file": {
+          "type": "string",
+          "description": "Path to the data file, relative to the yaml config."
+        },
+        "strategy": {
+          "type": "string",
+          "enum": ["circular", "random", "unique"],
+          "default": "circular",
+          "description": "circular: rows loop; random: random row per iteration; unique: each row used once."
+        },
+        "namespace": {
+          "type": "string",
+          "default": "data",
+          "description": "Variable prefix — columns accessible as ${<namespace>.<column>}."
+        },
+        "partition": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true and running in cluster mode, rows are automatically sliced by ScenarioPartition so each agent handles a distinct key range. Safe to leave true for single-node runs — no slicing is applied."
+        }
+      }
+    },
+
+    "WarmUpConfig": {
+      "type": "object",
+      "properties": {
+        "enabled":  { "type": "boolean", "default": true, "description": "Enable or skip the warm-up phase." },
+        "duration": { "type": "string", "description": "Warm-up duration in HH:MM:SS format (e.g. '00:00:30')." }
+      }
+    },
+
+    "LoadSimulationConfig": {
+      "type": "object",
+      "required": ["kind", "during"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["inject", "keepConstant", "rampingInject", "rampingKeepConstant", "pause"],
+          "description": "inject/rampingInject: open model (arrival rate). keepConstant/rampingKeepConstant: closed model (virtual users). pause: wait phase."
+        },
+        "rate": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Requests per interval. Used by: inject, rampingInject."
+        },
+        "copies": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of concurrent virtual users. Used by: keepConstant, rampingKeepConstant."
+        },
+        "interval": {
+          "type": "string",
+          "default": "00:00:01",
+          "description": "Injection interval in HH:MM:SS. Used by: inject, rampingInject."
+        },
+        "during": {
+          "type": "string",
+          "description": "Phase duration in HH:MM:SS format (e.g. '00:01:00'). Required for all kinds."
+        }
+      }
+    },
+
+    "ThresholdConfig": {
+      "type": "object",
+      "description": "A single threshold expression. At least one of the expression fields must be set.",
+      "properties": {
+        "okRequest": {
+          "type": "string",
+          "description": "Expression on ok-request metrics. Fields: RPS, Percent, Count. E.g. 'Percent > 99'."
+        },
+        "failRequest": {
+          "type": "string",
+          "description": "Expression on fail-request metrics. Fields: Percent, Count. E.g. 'Percent < 1'."
+        },
+        "okLatency": {
+          "type": "string",
+          "description": "Expression on ok-request latency (ms). Fields: P50, P75, P95, P99, Mean, StdDev. E.g. 'P99 < 500'."
+        },
+        "metricExpression": {
+          "type": "string",
+          "description": "Custom metric expression for advanced use cases."
+        }
+      }
+    },
+
+    "StepConfig": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "description": "Unique step name within the scenario — snake_case, lowercase."
+        },
+        "http": { "$ref": "#/definitions/HttpStepConfig" },
+        "capture": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/CaptureConfig" },
+          "description": "Extract values from the response for use in later steps."
+        },
+        "assert": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/AssertionConfig" },
+          "description": "Assertions that mark the step as failed if not satisfied."
+        }
+      }
+    },
+
+    "HttpStepConfig": {
+      "type": "object",
+      "required": ["url"],
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD"],
+          "default": "GET"
+        },
+        "url": {
+          "type": "string",
+          "description": "Full URL including scheme. Supports ${BASE_URL} and ${capture.*} interpolation."
+        },
+        "headers": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "HTTP request headers. Values support ${...} interpolation."
+        },
+        "body":   { "$ref": "#/definitions/HttpBodyConfig" },
+        "auth":   { "$ref": "#/definitions/HttpAuthConfig" },
+        "expectedStatusCodes": {
+          "type": "array",
+          "items": { "type": "integer" },
+          "description": "If set, only these status codes are considered successful. Default: any 2xx."
+        }
+      }
+    },
+
+    "HttpBodyConfig": {
+      "type": "object",
+      "description": "Exactly one of json, raw, or form must be set.",
+      "properties": {
+        "json": {
+          "description": "JSON body — object or array. All string values support ${...} interpolation."
+        },
+        "raw": {
+          "type": "string",
+          "description": "Raw string body. Supports ${...} interpolation."
+        },
+        "form": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "URL-encoded form fields. Values support ${...} interpolation."
+        }
+      }
+    },
+
+    "HttpAuthConfig": {
+      "type": "object",
+      "description": "Shorthand auth helpers (alternatively set headers manually).",
+      "properties": {
+        "bearer": {
+          "type": "string",
+          "description": "Bearer token value or ${capture.<name>}. Sets Authorization: Bearer <value>."
+        },
+        "basic": { "$ref": "#/definitions/BasicAuthConfig" },
+        "apiKey": {
+          "type": "string",
+          "description": "API key value. Header defaults to X-Api-Key unless apiKeyHeader is set."
+        },
+        "apiKeyHeader": {
+          "type": "string",
+          "default": "X-Api-Key",
+          "description": "Header name for the API key."
+        }
+      }
+    },
+
+    "BasicAuthConfig": {
+      "type": "object",
+      "required": ["username", "password"],
+      "properties": {
+        "username": { "type": "string", "description": "Supports ${...} interpolation." },
+        "password": { "type": "string", "description": "Supports ${...} interpolation." }
+      }
+    },
+
+    "CaptureConfig": {
+      "type": "object",
+      "required": ["as"],
+      "description": "Exactly one extractor (jsonPath, header, cookie, regex, or statusCode) must be set.",
+      "properties": {
+        "jsonPath":   { "type": "string", "description": "JSONPath expression to extract from the response body. Supports simple paths ($.data.token), array indexes ($.results[0].id), and RFC 9535 filter expressions ($.items[?@.active==true && @.type=='X'].id). Note: use RFC 9535 syntax WITHOUT outer parens — [?@.field==value] not [?(@.field==value)]. The =~ regex operator is not supported; use the regex extractor instead." },
+        "header":     { "type": "string", "description": "Response header name to capture." },
+        "cookie":     { "type": "string", "description": "Response cookie name to capture." },
+        "regex":      { "type": "string", "description": "Regex with a capture group applied to the response body." },
+        "statusCode": { "type": "boolean", "description": "Set true to capture the HTTP status code as an integer." },
+        "as":         { "type": "string",  "description": "Variable name — accessible as ${capture.<as>} in subsequent steps." },
+        "default":    { "type": "string",  "description": "Fallback value if the extractor finds nothing." }
+      }
+    },
+
+    "AssertionConfig": {
+      "type": "object",
+      "description": "At least one assertion field must be set.",
+      "properties": {
+        "statusCode":   { "type": "string",  "description": "Exact code ('200') or class ('2xx', '4xx')." },
+        "jsonPath":     { "type": "string",  "description": "JSONPath expression to evaluate (RFC 9535 — no outer parens in filters). Use with equalsValue, contains, notEmpty, or matches." },
+        "equalsValue":  { "type": "string",  "description": "Assert the jsonPath result equals this value." },
+        "contains":     { "type": "string",  "description": "Assert the jsonPath result contains this substring." },
+        "notEmpty":     { "type": "string",  "description": "Set to 'true' to assert the jsonPath result is not null/empty." },
+        "matches":      { "type": "string",  "description": "Assert the jsonPath result matches this regex pattern." }
+      }
+    }
+
+  }
+}

@@ -1,0 +1,334 @@
+# dq-nbomber YAML Examples
+# Reference: config-schema.json
+
+# ─────────────────────────────────────────────────────────────────────────────
+# EXAMPLE 1: Simple GET test — no auth, no data feed
+# ─────────────────────────────────────────────────────────────────────────────
+scenarios:
+  - name: public_api_smoke
+    steps:
+      - name: get_products
+        http:
+          method: GET
+          url: ${BASE_URL}/api/products
+          headers:
+            Accept: application/json
+        assert:
+          - statusCode: "200"
+          - jsonPath: "$[0].id"
+            notEmpty: "true"
+
+    loadSimulations:
+      - kind: inject
+        rate: 20
+        interval: "00:00:01"
+        during: "00:01:00"
+
+    thresholds:
+      - okRequest: "Percent > 99"
+      - okLatency: "P99 < 300"
+
+report:
+  folder: reports
+  formats: [html, md]
+
+---
+# ─────────────────────────────────────────────────────────────────────────────
+# EXAMPLE 2: Auth flow — login then call a protected endpoint
+# Data feed: data/users.csv  (columns: email, password)
+# ─────────────────────────────────────────────────────────────────────────────
+scenarios:
+  - name: auth_and_orders
+    dataFeeds:
+      - file: data/users.csv
+        namespace: data
+        strategy: circular
+
+    steps:
+      - name: login
+        http:
+          method: POST
+          url: ${BASE_URL}/api/auth/login
+          headers:
+            Content-Type: application/json
+          body:
+            json:
+              email: ${data.email}
+              password: ${data.password}
+        capture:
+          - jsonPath: "$.token"
+            as: auth_token
+        assert:
+          - statusCode: "200"
+
+      - name: list_orders
+        http:
+          method: GET
+          url: ${BASE_URL}/api/orders
+          auth:
+            bearer: ${capture.auth_token}
+        assert:
+          - statusCode: "200"
+
+      - name: create_order
+        http:
+          method: POST
+          url: ${BASE_URL}/api/orders
+          auth:
+            bearer: ${capture.auth_token}
+          headers:
+            Content-Type: application/json
+          body:
+            json:
+              productId: "prod_001"
+              quantity: 1
+        capture:
+          - jsonPath: "$.id"
+            as: order_id
+        assert:
+          - statusCode: "201"
+          - jsonPath: "$.id"
+            notEmpty: "true"
+
+    loadSimulations:
+      - kind: rampingKeepConstant
+        copies: 10
+        during: "00:00:30"
+      - kind: keepConstant
+        copies: 50
+        during: "00:02:00"
+      - kind: rampingKeepConstant
+        copies: 0
+        during: "00:00:30"
+
+    thresholds:
+      - okRequest: "Percent > 98"
+      - okLatency: "P95 < 400"
+      - failRequest: "Percent < 2"
+
+---
+# ─────────────────────────────────────────────────────────────────────────────
+# EXAMPLE 3: Registration + Login as separate scenarios
+# register uses unique strategy (each user registered once)
+# login uses circular strategy (reuse already-registered users)
+#
+# IMPORTANT: both scenarios use the SAME data file so credentials match.
+# ─────────────────────────────────────────────────────────────────────────────
+scenarios:
+  - name: register_users
+    dataFeeds:
+      - file: data/users.csv
+        namespace: data
+        strategy: unique       # each row used exactly once
+
+    steps:
+      - name: register
+        http:
+          method: POST
+          url: ${BASE_URL}/api/users/register
+          headers:
+            Content-Type: application/json
+          body:
+            json:
+              email: ${data.email}
+              password: ${data.password}
+              name: ${data.name}
+        assert:
+          - statusCode: "201"
+
+    loadSimulations:
+      - kind: inject
+        rate: 5
+        interval: "00:00:01"
+        during: "00:00:20"     # register 100 users total (5 rps × 20s)
+
+  - name: login_users
+    dataFeeds:
+      - file: data/users.csv   # same file → credentials match
+        namespace: data
+        strategy: circular
+
+    steps:
+      - name: login
+        http:
+          method: POST
+          url: ${BASE_URL}/api/auth/login
+          headers:
+            Content-Type: application/json
+          body:
+            json:
+              email: ${data.email}
+              password: ${data.password}
+        capture:
+          - jsonPath: "$.token"
+            as: token
+        assert:
+          - statusCode: "200"
+
+      - name: get_profile
+        http:
+          method: GET
+          url: ${BASE_URL}/api/users/me
+          auth:
+            bearer: ${capture.token}
+        assert:
+          - statusCode: "200"
+
+    loadSimulations:
+      - kind: keepConstant
+        copies: 20
+        during: "00:02:00"
+
+    thresholds:
+      - okRequest: "Percent > 99"
+      - okLatency: "P99 < 500"
+
+---
+# ─────────────────────────────────────────────────────────────────────────────
+# EXAMPLE 4: API key auth + response assertion
+# ─────────────────────────────────────────────────────────────────────────────
+scenarios:
+  - name: search_api
+    steps:
+      - name: search_items
+        http:
+          method: GET
+          url: ${BASE_URL}/api/search?q=laptop
+          auth:
+            apiKey: ${API_KEY}
+            apiKeyHeader: X-Api-Key
+        assert:
+          - statusCode: "200"
+          - jsonPath: "$.results"
+            notEmpty: "true"
+
+    loadSimulations:
+      - kind: rampingInject
+        rate: 50
+        interval: "00:00:01"
+        during: "00:00:30"
+
+    thresholds:
+      - okLatency: "P99 < 200"
+      - okRequest: "RPS >= 30"
+
+---
+# ─────────────────────────────────────────────────────────────────────────────
+# EXAMPLE 5: Multi-scenario with weight distribution
+# 70% traffic to reads, 30% to writes
+# ─────────────────────────────────────────────────────────────────────────────
+scenarios:
+  - name: read_heavy
+    weight: 7
+    steps:
+      - name: get_item
+        http:
+          method: GET
+          url: ${BASE_URL}/api/items/1
+        assert:
+          - statusCode: "200"
+    loadSimulations:
+      - kind: keepConstant
+        copies: 70
+        during: "00:03:00"
+
+  - name: write_light
+    weight: 3
+    dataFeeds:
+      - file: data/payloads.csv
+        namespace: data
+        strategy: circular
+    steps:
+      - name: create_item
+        http:
+          method: POST
+          url: ${BASE_URL}/api/items
+          headers:
+            Content-Type: application/json
+          body:
+            json:
+              title: ${data.title}
+              price: ${data.price}
+        assert:
+          - statusCode: "201"
+    loadSimulations:
+      - kind: keepConstant
+        copies: 30
+        during: "00:03:00"
+
+---
+# ─────────────────────────────────────────────────────────────────────────────
+# EXAMPLE 6: Distributed cluster — coordinator node
+#
+# Run this YAML on the coordinator pod:
+#   dq-nbomber run dq-nbomber.yaml
+#
+# Run the same YAML on agent pods, overriding nodeType at runtime:
+#   dq-nbomber run dq-nbomber.yaml -- --cluster-node-type=agent
+#
+# For local minikube smoke test (no NATS, single process):
+#   Set localDev: true, then: dq-nbomber run dq-nbomber.yaml
+# ─────────────────────────────────────────────────────────────────────────────
+cluster:
+  nodeType: coordinator                    # coordinator | agent
+  natsUrl: nats://nats-service:4222        # NATS service name inside K8s
+  agentsCount: 3                           # coordinator waits for 3 agents
+  clusterId: sprint-42-load                # same ID on all pods
+  # localDev: true                         # uncomment for single-machine run
+  # agentGroup: groupA                     # optional ManualCluster group
+  coordinatorTarget:
+    - api_load
+  agentTarget:
+    - api_load
+
+scenarios:
+  - name: api_load
+    dataFeeds:
+      - file: data/users.csv
+        namespace: data
+        strategy: unique
+        partition: true    # each agent gets its own slice of users.csv
+                           # agent 0 of 3 → rows 0-33, agent 1 → rows 34-66, agent 2 → rows 67-99
+                           # single-node runs: no slicing, all rows available
+
+    steps:
+      - name: login
+        http:
+          method: POST
+          url: ${BASE_URL}/api/auth/login
+          headers:
+            Content-Type: application/json
+          body:
+            json:
+              email: ${data.email}
+              password: ${data.password}
+        capture:
+          - jsonPath: "$.token"
+            as: auth_token
+        assert:
+          - statusCode: "200"
+
+      - name: get_items
+        http:
+          method: GET
+          url: ${BASE_URL}/api/items
+          auth:
+            bearer: ${capture.auth_token}
+        assert:
+          - statusCode: "200"
+
+    loadSimulations:
+      - kind: rampingKeepConstant
+        copies: 50
+        during: "00:01:00"
+      - kind: keepConstant
+        copies: 50
+        during: "00:05:00"
+
+    thresholds:
+      - okRequest: "Percent > 99"
+      - okLatency: "P95 < 400"
+
+report:
+  folder: reports
+  formats: [html, csv, md]
