@@ -17,9 +17,9 @@ Output this checklist at the start, then output the updated list (with items che
 - [ ] Read config and qa-plan.md
 - [ ] Check domain artifacts exist
 - [ ] Show execution plan — confirm with user
-- [ ] Step 1: Execute API tests
-- [ ] Step 2: Execute UI + Accessibility tests
-- [ ] Step 3: Guide Performance test run
+- [ ] Step 2: Execute API tests
+- [ ] Step 3: Execute UI + Accessibility tests
+- [ ] Step 4: Guide Performance test run
 ```
 
 ## Step 0 — Read config and check artifacts
