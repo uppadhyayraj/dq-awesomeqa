@@ -38,7 +38,7 @@ If config not found: invoke qa-onboard first.
 ## Step 1 — Warn if app must be running
 
 If `domains.ui.enabled` or `domains.accessibility.enabled` is true:
-> "⚠️ **UI and Accessibility planning require the app to be running in a browser** — I'll explore the live app to discover real selectors and page flows. Please make sure `<domains.ui.baseUrl>` is reachable before we start those domains."
+> "⚠️ **UI and Accessibility planning require the app to be running in a browser** — I'll explore the live app to discover real selectors and page flows. Please make sure `<actual baseUrl from config>` is reachable before we start those domains."
 
 ## Step 2 — Collect requirements (one domain at a time)
 
@@ -79,13 +79,15 @@ Wait for response.
 
 ### Option A — Parallel subagents
 
-Dispatch using `superpowers:dispatching-parallel-agents`:
+Dispatch using `superpowers:dispatching-parallel-agents`. Pass each domain as a subagent task with the requirements collected in Step 2:
 
-- **Track 1 (parallel):** Invoke `qa-api` with the API requirements from Step 2
-- **Track 2 (parallel):** Invoke `qa-perf` with the performance requirements from Step 2
-- **Track 3 (sequential):** Invoke `qa-ui`, then when complete invoke `qa-a11y` (qa-a11y extends the qa-ui YAML — it must run after qa-ui finishes)
+- **Task 1 (parallel):** "Run /qa-api. Test categories to cover: [categories from Step 2]. Config is at dq-qa.config.json."
+- **Task 2 (parallel):** "Run /qa-perf. Load profile: [profile from Step 2]. Flows to test: [flows from Step 2]. Config is at dq-qa.config.json."
+- **Task 3 (sequential, only after Task 3a completes):**
+  - **Task 3a:** "Run /qa-ui. User flows to cover: [flows from Step 2]. Config is at dq-qa.config.json."
+  - **Task 3b (after 3a):** "Run /qa-a11y. Pages to audit: [flows from Step 2]. Config is at dq-qa.config.json."
 
-Only dispatch the tracks whose domains are enabled.
+Only dispatch tasks for enabled domains.
 
 ### Option B — Manual instructions
 
@@ -132,7 +134,7 @@ Write `qa-plan.md` to the project root:
 | Domain | Entry criteria | Exit criteria |
 |--------|---------------|--------------|
 | UI | App running at `<baseUrl>`; `ui-test.yaml` saved | All flows pass; 0 selector failures |
-| Accessibility | `ui-test.yaml` has scan steps | 0 critical/serious WCAG violations |
+| Accessibility | `ui-test.yaml` has scan steps | 0 critical/serious violations at `<domains.accessibility.level>` |
 | API | API reachable; `api-test-plan.md` saved | All selected categories pass |
 | Performance | `dq-nbomber.yaml` validated; real credentials in `users.csv` | p99 < `<p99LatencyMs>`ms; ok% > `<okRequestPercent>`% |
 
@@ -147,6 +149,8 @@ Write `qa-plan.md` to the project root:
 ---
 
 ## Artifact links
+
+Only include rows for enabled domains.
 
 | Domain | Artifact |
 |--------|---------|
@@ -167,3 +171,4 @@ Write `qa-plan.md` to the project root:
 |-----------|---------- |
 | No config found | Invoke qa-onboard first |
 | User asks for plan for a single domain | Produce a domain-specific section only |
+| qa-exec not yet available | Run `/qa-ui`, `/qa-a11y`, `/qa-api`, and `/qa-perf` individually, then run `/qa-report` when done |
