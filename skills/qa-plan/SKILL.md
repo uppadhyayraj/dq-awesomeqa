@@ -83,9 +83,8 @@ Dispatch using `superpowers:dispatching-parallel-agents`. Pass each domain as a 
 
 - **Task 1 (parallel):** "Run /qa-api. Test categories to cover: [categories from Step 2]. Config is at dq-qa.config.json."
 - **Task 2 (parallel):** "Run /qa-perf. Load profile: [profile from Step 2]. Flows to test: [flows from Step 2]. Config is at dq-qa.config.json."
-- **Task 3 (sequential, only after Task 3a completes):**
-  - **Task 3a:** "Run /qa-ui. User flows to cover: [flows from Step 2]. Config is at dq-qa.config.json."
-  - **Task 3b (after 3a):** "Run /qa-a11y. Pages to audit: [flows from Step 2]. Config is at dq-qa.config.json."
+- **Task 3 — UI (sequential, run after Tasks 1 & 2 are dispatched):** "Run /qa-ui. User flows to cover: [flows from Step 2]. Config is at dq-qa.config.json."
+- **Task 4 — A11y (sequential, MUST run after Task 3 completes):** "Run /qa-a11y. Pages to audit: [flows from Step 2]. Config is at dq-qa.config.json. Note: ui-test.yaml must exist before this runs."
 
 Only dispatch tasks for enabled domains.
 

@@ -139,7 +139,7 @@ For every `capture:` block in the generated YAML:
 
 ```yaml
 capture:
-  - name: authToken
+  - as: authToken
     # WARNING: JSONPath guessed — verify against actual response shape before using in production
     jsonPath: $.token
 ```

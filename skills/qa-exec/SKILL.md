@@ -1,7 +1,6 @@
 ---
 name: qa-exec
 description: Execute all domain tests in recommended order — API → UI+Accessibility → Performance. Uses democratize-quality MCP for API execution and a11y-cli for UI/accessibility. Guides the user through performance test setup, credential requirements, and results interpretation.
-allowed-tools: Bash(a11y-cli:*)
 ---
 
 # qa-exec — Test Execution Orchestrator
@@ -33,7 +32,7 @@ Check which artifacts are present:
 
 ```bash
 ls api-test-plan.md 2>/dev/null && echo "API: ready" || echo "API: missing (run /qa-api)"
-ls ui-test.yaml 2>/dev/null && echo "UI+A11y: ready" || echo "UI+A11y: missing (run /qa-ui)"
+ls ui-test.yaml 2>/dev/null && echo "UI+A11y: ready" || echo "UI+A11y: missing (run /qa-ui, then optionally /qa-a11y)"
 ls ./load-tests/dq-nbomber.yaml 2>/dev/null && echo "Perf: ready" || echo "Perf: missing (run /qa-perf)"
 ```
 
@@ -93,11 +92,21 @@ If tests fail:
 ## Step 3 — Execute UI + Accessibility tests
 
 Tell the user:
-> "Running UI and accessibility tests from `ui-test.yaml`…"
+> "Running UI and accessibility tests…"
 
+Check which test file is available before running:
+
+If `ui-test.yaml` is present, run:
 ```bash
 a11y-cli script ui-test.yaml
 ```
+
+If `ui-test.yaml` is not present, check for a standalone a11y audit file (produced by `/qa-a11y` when UI is disabled):
+```bash
+ls <domains.accessibility.reportDir>/audit.yaml 2>/dev/null
+```
+- If found, run: `a11y-cli script <domains.accessibility.reportDir>/audit.yaml`
+- If not found, report: "No UI or A11y test file found. Run `/qa-ui` or `/qa-a11y` to create the test script."
 
 Read the command output and report:
 - How many interaction steps completed
