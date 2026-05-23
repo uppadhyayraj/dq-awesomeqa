@@ -1,132 +1,169 @@
 ---
 name: qa-plan
-description: Create a unified, risk-based QA strategy covering all enabled testing domains. Reads dq-qa.config.json and optional requirements docs. Produces qa-plan.md with prioritized test scope, entry/exit criteria, and recommended execution order. Use at the start of a release cycle or after major requirement changes.
+description: Orchestrate QA planning across all enabled domains. Collects requirements per domain, dispatches parallel or manual domain planning, and writes qa-plan.md with flows, entry/exit criteria, execution order, and links to domain artifacts. Use at the start of a release cycle.
 ---
 
-# qa-plan — QA Strategy
+# qa-plan — QA Planning Orchestrator
 
-You are a senior QA consultant creating a test strategy. Your job is not to list everything that *could* be tested — it's to identify what *must* be tested given the risk profile of this project and prioritize ruthlessly.
+You are a senior QA consultant orchestrating test planning. Collect the right requirements from the user and coordinate domain-specific planning so each domain produces a complete, executable artifact.
 
-## Step 1 — Read config
+## Progress checklist
+
+Output this checklist at the start, then output the updated list (with items checked off) after each step completes:
+
+```
+**qa-plan — progress**
+- [ ] Read config
+- [ ] Warn if app must be running (UI / A11y)
+- [ ] Collect domain requirements
+- [ ] Ask: parallel subagents or manual?
+- [ ] Run domain planning
+- [ ] Write qa-plan.md
+```
+
+## Step 0 — Read config
 
 ```bash
 cat dq-qa.config.json
 ```
 
-If not found:
-> "I don't see a `dq-qa.config.json` in this project yet. Let me run qa-onboard first to collect the project configuration."
-Then invoke qa-onboard before continuing.
+Identify which domains are enabled:
+- `domains.api.enabled`
+- `domains.ui.enabled`
+- `domains.accessibility.enabled`
+- `domains.performance.enabled`
 
-## Step 2 — Read requirements (if available)
+If config not found: invoke qa-onboard first.
 
-If `requirements.docsPath` is set and not null:
-```bash
-ls <docsPath>
-```
-Read all markdown/text files in that directory. Identify key features, user flows, and business rules.
+## Step 1 — Warn if app must be running
 
-If no requirements docs exist, ask:
-> "I don't see requirements documentation. Can you tell me:
-> 1. What are the 3 most critical user flows in this application? (e.g. login, checkout, user registration)
-> 2. Which features are changing in this release?
-> 3. Are there any known high-risk areas (recent bugs, complex logic, third-party integrations)?"
+If `domains.ui.enabled` or `domains.accessibility.enabled` is true:
+> "⚠️ **UI and Accessibility planning require the app to be running in a browser** — I'll explore the live app to discover real selectors and page flows. Please make sure `<domains.ui.baseUrl>` is reachable before we start those domains."
 
-## Step 3 — Produce `qa-plan.md`
+## Step 2 — Collect requirements (one domain at a time)
 
-Write `qa-plan.md` to the project root with these sections:
+**If UI or Accessibility enabled:**
+> "For **UI / Accessibility** testing — what user flows should I cover? Please list the 3–5 most critical paths (e.g. 'login → dashboard → create order → checkout'). I'll use these to build the interaction script."
+
+Wait for response before continuing to next domain.
+
+**If API enabled:**
+> "For **API** testing — which test categories should I include?
+> - functional (happy paths for each endpoint)
+> - security (auth, injection, permissions)
+> - error-handling (4xx/5xx responses)
+> - edge-cases (boundary values, empty inputs)
+>
+> Select all that apply, or say 'all'."
+
+Wait for response.
+
+**If Performance enabled:**
+> "For **Performance** testing — two questions:
+> 1. What load profile should I use? (e.g. '10 req/s for 60s', or 'ramp from 5 to 50 req/s over 2 min')
+> 2. Which flows should I load test? (e.g. 'login flow and product search')"
+
+Wait for response.
+
+## Step 3 — Ask how to run domain planning
+
+> "I'm ready to create test artifacts for each domain. I can:
+>
+> **A) Run domain planning in parallel using subagents (recommended — faster)**
+> Each domain gets its own agent running simultaneously.
+>
+> **B) Guide you to run each skill manually**
+> I'll give you numbered instructions and wait for you to run each skill.
+>
+> Which do you prefer?"
+
+### Option A — Parallel subagents
+
+Dispatch using `superpowers:dispatching-parallel-agents`:
+
+- **Track 1 (parallel):** Invoke `qa-api` with the API requirements from Step 2
+- **Track 2 (parallel):** Invoke `qa-perf` with the performance requirements from Step 2
+- **Track 3 (sequential):** Invoke `qa-ui`, then when complete invoke `qa-a11y` (qa-a11y extends the qa-ui YAML — it must run after qa-ui finishes)
+
+Only dispatch the tracks whose domains are enabled.
+
+### Option B — Manual instructions
+
+> "Here's the order to run each skill:
+>
+> 1. Run `/qa-api` → produces `api-test-plan.md`
+> 2. Run `/qa-perf` → produces `./load-tests/dq-nbomber.yaml`
+> 3. Run `/qa-ui` → produces `ui-test.yaml`
+> 4. Run `/qa-a11y` → adds scan steps to `ui-test.yaml` (must run after `/qa-ui`)
+>
+> Come back when all skills are done and I'll write `qa-plan.md`."
+
+Wait for the user to confirm all domain artifacts are ready before continuing.
+
+## Step 4 — Write qa-plan.md
+
+Write `qa-plan.md` to the project root:
 
 ```markdown
 # QA Plan — <project name>
 
 **Created:** <date>
-**Version:** 1.0
-**Domains:** <list of enabled domains>
+**Domains covered:** <list enabled domains>
 
 ---
 
-## Risk Assessment
+## Flows covered per domain
 
-<Identify top 3-5 risk areas based on requirements and recent changes. For each:>
-- **Risk:** what could go wrong
-- **Likelihood:** High / Medium / Low
-- **Impact:** High / Medium / Low
-- **Testing priority:** which domain covers it
-
----
-
-## Test Scope
-
-### In Scope
-<List what WILL be tested and why — tie each item to a risk or user flow>
-
-### Out of Scope
-<List what will NOT be tested in this cycle and the rationale — this is as important as the in-scope list>
-
----
-
-## Domain Plans
-
-### UI E2E (if enabled)
-- **Test types:** Smoke / Regression / Visual
-- **Key flows to cover:** <list from requirements>
-- **Entry criteria:** App deployed and accessible at <baseUrl>
-- **Exit criteria:** All smoke tests pass; 0 P0 failures; <N> regression tests green
+### UI / Accessibility (if enabled)
+<List the user flows from Step 2>
 
 ### API (if enabled)
-- **Test types:** Functional / Security / Error handling / Edge cases
-- **Schema:** <schemaUrl or schemaPath>
-- **Entry criteria:** API accessible at <baseUrl>; schema URL reachable
-- **Exit criteria:** All generated tests pass; auth flows validated; error codes verified
-
-### Accessibility (if enabled)
-- **Standard:** <jurisdiction> WCAG <level>
-- **Pages/flows to audit:** <derived from UI flows>
-- **Entry criteria:** App running in a browser-accessible environment
-- **Exit criteria:** 0 critical/serious violations at <level>; report generated
+- Categories: <categories selected in Step 2>
+- Schema: <domains.api.schemaUrl or schemaPath>
 
 ### Performance (if enabled)
-- **Schema:** <schemaUrl>
-- **Thresholds:** p99 < <p99LatencyMs>ms | ok requests > <okRequestPercent>%
-- **Load profile:** inject 10 req/s for 60s (baseline); adjust in qa-perf
-- **Entry criteria:** API accessible; load test YAML validated
-- **Exit criteria:** All thresholds pass; trend report generated
+- Load profile: <profile from Step 2>
+- Flows under test: <flows from Step 2>
 
 ---
 
-## Recommended Execution Order
+## Entry / Exit criteria
 
-<Based on risk: list domains in the order they should be executed, with reasoning>
-
-1. <domain> — because <risk rationale>
-2. <domain> — because <risk rationale>
-...
+| Domain | Entry criteria | Exit criteria |
+|--------|---------------|--------------|
+| UI | App running at `<baseUrl>`; `ui-test.yaml` saved | All flows pass; 0 selector failures |
+| Accessibility | `ui-test.yaml` has scan steps | 0 critical/serious WCAG violations |
+| API | API reachable; `api-test-plan.md` saved | All selected categories pass |
+| Performance | `dq-nbomber.yaml` validated; real credentials in `users.csv` | p99 < `<p99LatencyMs>`ms; ok% > `<okRequestPercent>`% |
 
 ---
 
-## Definition of Done
+## Recommended execution order
 
-- [ ] All enabled domains executed
-- [ ] All P0 and P1 failures triaged and assigned
-- [ ] qa-report generated and shared with stakeholders
-- [ ] Coverage gaps documented in qa-coverage output
+1. **API** — no browser required; fastest feedback on core logic
+2. **UI + Accessibility** — browser-based; run together via `qa-exec`
+3. **Performance** — last; load tests generate real traffic and require human approval
+
+---
+
+## Artifact links
+
+| Domain | Artifact |
+|--------|---------|
+| UI + Accessibility | `ui-test.yaml` |
+| API | `api-test-plan.md` |
+| Performance | `./load-tests/dq-nbomber.yaml` |
 ```
 
 ## Closing
 
-After writing `qa-plan.md`:
-
-> **QA plan created at `qa-plan.md`.**
+> **QA plan written to `qa-plan.md`.**
 >
-> **Top risks identified:** <list top 2-3>
->
-> **Recommended first domain to execute:** <domain> — because <reason>.
->
-> Run `/qa-<domain>` to start execution. The plan will guide what to test — the skill will handle how.
+> All domain artifacts are ready. Run `/qa-exec` to execute tests in the recommended order.
 
 ## Failure protocol
 
 | Situation | Response |
 |-----------|---------- |
 | No config found | Invoke qa-onboard first |
-| Requirements docs exist but are empty | Ask the user for the 3 key flows |
-| User asks for a plan for a single domain | Produce a domain-specific plan section only |
+| User asks for plan for a single domain | Produce a domain-specific section only |
