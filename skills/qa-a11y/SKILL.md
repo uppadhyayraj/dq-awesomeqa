@@ -46,6 +46,15 @@ Extract:
 - `domains.accessibility.level`
 - `domains.accessibility.reportDir`
 - `domains.accessibility.jurisdiction`
+- `requirements.docsPath`
+
+If `requirements.docsPath` is set, read the requirements doc now — use it as context for which flows and pages to audit:
+
+```bash
+cat <requirements.docsPath> 2>/dev/null
+# or if it's a directory:
+ls <requirements.docsPath> && cat <requirements.docsPath>/*.md 2>/dev/null
+```
 
 If `domains.accessibility.enabled` is false:
 > "Accessibility testing is disabled in `dq-qa.config.json`. Run `/qa-onboard` and enable the accessibility domain."

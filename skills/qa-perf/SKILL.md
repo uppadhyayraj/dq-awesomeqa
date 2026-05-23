@@ -48,6 +48,15 @@ Extract from config:
 - `domains.performance.thresholds.okRequestPercent`
 - `domains.performance.reportDir`
 - `domains.performance.schemaUrl` — note if set; use as a candidate path for the schema below
+- `requirements.docsPath`
+
+If `requirements.docsPath` is set, read the requirements doc now — use it as context for which flows to load test and what the expected behaviour is:
+
+```bash
+cat <requirements.docsPath> 2>/dev/null
+# or if it's a directory:
+ls <requirements.docsPath> && cat <requirements.docsPath>/*.md 2>/dev/null
+```
 
 If `domains.performance.enabled` is false:
 > "Performance testing is disabled in `dq-qa.config.json`. Run `/qa-onboard` and enable the performance domain."

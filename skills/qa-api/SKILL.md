@@ -32,6 +32,15 @@ Extract:
 - `domains.api.baseUrl` → `apiBaseUrl`
 - `domains.api.schemaUrl` → `schemaUrl` (or `domains.api.schemaPath` → `schemaPath`)
 - `domains.api.reportDir` → `reportDir`
+- `requirements.docsPath`
+
+If `requirements.docsPath` is set, read the requirements doc now — use it as context for what endpoints and behaviours to test:
+
+```bash
+cat <requirements.docsPath> 2>/dev/null
+# or if it's a directory:
+ls <requirements.docsPath> && cat <requirements.docsPath>/*.md 2>/dev/null
+```
 
 If `domains.api.enabled` is false:
 > "API testing is disabled in `dq-qa.config.json`. Run `/qa-onboard` and enable the API domain."
