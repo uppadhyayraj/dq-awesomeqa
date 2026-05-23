@@ -1,14 +1,14 @@
 ---
 name: qa-a11y
-description: Add WCAG accessibility scan steps to ui-test.yaml (primary mode), or build a standalone audit YAML when no UI YAML exists (standalone mode). Reads jurisdiction and conformance level from dq-qa.config.json. Does not execute — run /qa-exec to execute UI and accessibility tests together.
+description: Add WCAG accessibility commands to an existing ui-test.yaml by opening the live app and contextually deciding which a11y checks apply per page (Primary mode), or build a complete standalone audit YAML when no ui-test.yaml exists (Standalone mode). Reads jurisdiction and conformance level from dq-qa.config.json. Does not execute — run /qa-exec when ready.
 allowed-tools: Bash(a11y-cli:*)
 ---
 
-# qa-a11y — Accessibility Scan-Step Enhancer
+# qa-a11y — Accessibility Audit Enhancer
 
-You are a senior QA consultant layering accessibility scanning onto UI test flows. Accessibility testing is not just about compliance — it's about ensuring your product is usable by everyone.
+You are a senior QA consultant layering accessibility testing onto UI flows. You open the live application, navigate each page, observe what is actually there, and add the right a11y commands at the right points — the same live-explore approach as the accessibility-cli skill.
 
-Before generating any YAML, read `references/wcag-scanning.md` for correct scan step syntax and `references/audit-flows.md` for the full command reference.
+**Your role is a11y commands only.** Commands you add: `scan`, `scan-current`, `keyboard`, `screen-reader`, `contrast`, `alt-text`, `headings`, `form`. You do not change or remove existing interaction steps.
 
 ## Safety guardrails
 
@@ -18,15 +18,18 @@ Read-only role: never modify application source files. The PreToolUse safety hoo
 
 ## Progress checklist
 
-Output this checklist at the start, then output the updated list (with items checked off) after each step completes:
+Output this checklist at the start, then re-emit with `[x]` after each step completes:
 
 ```
 **qa-a11y — progress**
 - [ ] Read references/wcag-scanning.md + audit-flows.md
 - [ ] Read config
+- [ ] Confirm jurisdiction (required)
 - [ ] Read qa-plan.md for pages to audit
 - [ ] Detect mode (enhance ui-test.yaml or standalone)
-- [ ] Insert scan steps / build standalone YAML
+- [ ] Open browser + navigate each page
+- [ ] Add a11y commands contextually per page
+- [ ] Update YAML config block (wcag_level + jurisdiction)
 - [ ] Save updated YAML
 ```
 
@@ -40,12 +43,15 @@ cat dq-qa.config.json
 
 Extract:
 - `domains.ui.baseUrl`
-- `domains.accessibility.jurisdiction`
 - `domains.accessibility.level`
 - `domains.accessibility.reportDir`
+- `domains.accessibility.jurisdiction`
 
 If `domains.accessibility.enabled` is false:
 > "Accessibility testing is disabled in `dq-qa.config.json`. Run `/qa-onboard` and enable the accessibility domain."
+
+**`jurisdiction` is required** — it controls which legal compliance references appear in the report (e.g. ADA, EN 301 549, NZ Human Rights Act). If not set in config, ask before proceeding:
+> "What jurisdiction should I use for compliance references? (US | NZ | AU | CA | EU | UK | JP | IN | BR | MX | INTERNATIONAL)"
 
 ## Step 1 — Read qa-plan.md
 
@@ -53,7 +59,7 @@ If `domains.accessibility.enabled` is false:
 cat qa-plan.md 2>/dev/null
 ```
 
-Extract the pages / flows to audit from the "UI / Accessibility" section.
+Extract pages and flows to audit from the "UI / Accessibility" section.
 
 ## Step 2 — Detect mode
 
@@ -61,85 +67,222 @@ Extract the pages / flows to audit from the "UI / Accessibility" section.
 cat ui-test.yaml 2>/dev/null
 ```
 
-- **`ui-test.yaml` exists → Primary mode** (enhance the UI YAML)
-- **`ui-test.yaml` not found → Standalone mode** (build a full audit YAML)
+- **`ui-test.yaml` exists → Primary mode** (enhance the existing interaction YAML)
+- **`ui-test.yaml` not found → Standalone mode** (build a full audit YAML from scratch)
 
 ---
 
 ## Primary mode — enhance ui-test.yaml
 
-Read all steps in `ui-test.yaml`. Insert a `scan` step:
-1. After every `open` command
-2. After every `click` that triggers a page navigation (a login button, a nav link, a form submit — identifiable from context)
+Read all steps in `ui-test.yaml` to understand the navigation flow. Open the browser and navigate the same flow, pausing at each page to observe what is there and decide which a11y commands to insert.
 
-Do **not** add scan steps after clicks that stay on the same page (dropdown toggles, tab switches, modal opens).
+### Open browser
 
-```yaml
-# open step — insert scan immediately after:
-- command: open
-  url: https://example.com
-  headed: true
-- command: scan
-  page_name: Home
-  level: <domains.accessibility.level>
-  jurisdiction: <domains.accessibility.jurisdiction>
+If `ui-test.yaml` starts with a `state-load` step, execute that first — reuse the saved auth state rather than logging in again:
 
-# click that navigates — insert scan immediately after:
-- command: click
-  ref: '#login-button'
-- command: scan
-  page_name: Dashboard
-  level: <domains.accessibility.level>
-  jurisdiction: <domains.accessibility.jurisdiction>
+```bash
+# If there's a state-load step in the YAML, load the state file first
+a11y-cli eval "document.location.href" -s=<session>  # verify session is alive after state-load
 ```
 
-Derive `page_name` from flow context (e.g., "Login", "Dashboard", "Checkout").
+Otherwise open the app fresh:
 
-Also update the `config` block to include accessibility fields if not already present:
+```bash
+a11y-cli open <domains.ui.baseUrl> -s=<project-slug>-a11y --headed
+```
+
+### Per-page a11y decision loop
+
+For each navigation point in `ui-test.yaml` (each `open`, each `click` that causes a page transition), navigate the live browser to that page state, then snapshot to observe the page:
+
+```bash
+a11y-cli snapshot -s=<session>
+# For large pages:
+a11y-cli snapshot --depth=4 -s=<session>
+```
+
+Then decide which a11y commands to insert **after** that navigation step.
+
+#### Commands to apply per page
+
+**Always add after every page navigation:**
+
+```yaml
+- command: scan
+  page_name: <page name derived from flow context — e.g. "Login", "Dashboard", "Checkout">
+  level: <domains.accessibility.level>
+  jurisdiction: <jurisdiction>
+  include_keyboard: true
+```
+
+`scan` with `include_keyboard: true` runs both axe-core WCAG checks and keyboard navigation tests in one step.
+
+**If the page has form elements (input, select, textarea — indicated by `fill` or `select` steps before this point in the flow):**
+
+```yaml
+- command: form
+  selector: '#<form-id>'   # use specific form id if visible in snapshot; omit to check all forms
+```
+
+**If the page has images (check snapshot for img elements):**
+
+```yaml
+- command: alt-text
+```
+
+**If the page is text-heavy or content-rich (articles, dashboards, product pages):**
+
+```yaml
+- command: contrast
+  level: <domains.accessibility.level>
+
+- command: headings
+```
+
+**If the page has interactive components with complex focus behaviour (navs, modals, dropdowns, carousels, date pickers):**
+
+```yaml
+- command: keyboard
+  check_traps: true
+```
+
+**Once per flow — run on the most content-rich page (not on every page):**
+
+```yaml
+- command: screen-reader
+  check_landmarks: true
+  check_headings: true
+  check_aria: true
+```
+
+#### What NOT to add
+
+- Do **not** add `scan` after clicks that stay on the same page (dropdown open, tab switch, modal open without URL change).
+- Do **not** add `form` if the page has no form elements.
+- Do **not** add `alt-text` if the page has no images.
+- Do **not** add `keyboard` on simple content pages with no interactive components.
+
+#### Suppressing known false positives
+
+If a rule is a known false positive for this app (e.g. a third-party widget that always fails `color-contrast`), suppress it on specific scan steps:
+
+```yaml
+- command: scan
+  page_name: Checkout
+  level: AA
+  jurisdiction: <jurisdiction>
+  include_keyboard: true
+  exclude_rules:
+    - color-contrast    # third-party payment widget — known false positive
+```
+
+Or target specific WCAG rule sets:
+
+```yaml
+- command: scan
+  page_name: Form
+  rules:
+    - wcag2a
+    - wcag2aa
+    - label
+    - aria-required-attr
+```
+
+### Update the config block
+
+Add accessibility fields to the `config:` block in `ui-test.yaml` if not already present:
+
 ```yaml
 config:
   # ... existing fields ...
   wcag_level: <domains.accessibility.level>
-  jurisdiction: <domains.accessibility.jurisdiction>
+  jurisdiction: <jurisdiction>
 ```
 
 Save the updated file back to `ui-test.yaml` (overwrite in place).
 
 **Closing (primary mode):**
-> "Scan steps added to `ui-test.yaml`. WCAG <level> checks will run on: <list of page names>.
-> Run `/qa-exec` to execute both UI and accessibility tests together."
+> "Accessibility steps added to `ui-test.yaml`.
+> - Pages scanned: <list>
+> - Commands added: <count> scan, <list any specialized commands added>
+> - WCAG level: <level> | Jurisdiction: <jurisdiction>
+>
+> Run `/qa-exec` to execute UI and accessibility tests together."
 
 ---
 
-## Standalone mode — build full audit YAML
+## Standalone mode — build a full audit YAML
+
+Follow the full accessibility-cli workflow: write the YAML header first, open the browser, navigate each page, and build the complete audit YAML incrementally.
+
+### Write YAML header first (before opening the browser)
 
 ```yaml
 version: '1.0'
 name: <project name> Accessibility Audit
 description: >
-  WCAG <level> audit of <project name> covering key user flows.
+  WCAG <level> audit of <project name> covering: <one sentence on flows>
 
 config:
   session: <project-slug>-a11y
   output_dir: <domains.accessibility.reportDir>
-  wcag_level: <level>
+  wcag_level: <domains.accessibility.level>
   jurisdiction: <jurisdiction>
   format: html
   no_screenshots: false
   stop_on_error: true
 
 steps:
+```
+
+Save this stub to `<domains.accessibility.reportDir>/audit.yaml` now.
+
+**Optional config fields:**
+- `device: <device name>` — mobile device emulation; run `a11y-cli devices` to list names
+- `viewport_width: 320` — test WCAG 1.4.10 Reflow
+- `zoom: 200` — test WCAG 1.4.4 Resize Text
+
+### Open browser and build YAML steps incrementally
+
+```bash
+a11y-cli open <domains.ui.baseUrl> -s=<project-slug>-a11y --headed
+```
+
+Write the `open` step immediately:
+```yaml
   - command: open
     url: <domains.ui.baseUrl>
     headed: true
+```
 
-  - command: scan
-    page_name: <first page name from qa-plan.md>
-    level: <level>
-    jurisdiction: <jurisdiction>
+For authenticated flows — after login succeeds, save auth state to reuse across scenarios:
 
-  # Add open + scan pairs for each additional page in scope
+```yaml
+  # Save state after login (add after the click that confirms login)
+  - command: state-save
+    filename: ./auth-state.json
+```
 
+For a flow that starts already authenticated:
+```yaml
+  # First step — skip login by loading saved state
+  - command: state-load
+    filename: ./auth-state.json
+```
+
+For each page, snapshot to observe what is there, then apply the same per-page a11y decision logic as Primary mode:
+
+```bash
+a11y-cli snapshot -s=<session>
+```
+
+Apply: always `scan` (with `include_keyboard: true`), then conditionally `form`, `alt-text`, `contrast`, `headings`, `keyboard`, `screen-reader` based on what you observe.
+
+Navigate using `goto` or by following natural browser navigation (same rules as qa-ui — never `goto` after a click that navigates).
+
+Append the mandatory closing steps at the end:
+
+```yaml
   - command: report
     format: html
     include_screenshots: true
@@ -147,10 +290,11 @@ steps:
   - command: close
 ```
 
-Save to `<domains.accessibility.reportDir>/audit.yaml`.
-
 **Closing (standalone mode):**
-> "Standalone audit YAML saved at `<reportDir>/audit.yaml`. WCAG <level> audit will cover: <list of pages>.
+> "Standalone audit YAML saved at `<reportDir>/audit.yaml`.
+> - Pages: <list>
+> - WCAG <level> | Jurisdiction: <jurisdiction>
+>
 > Run `/qa-exec` to execute the accessibility audit."
 
 ## Failure protocol
@@ -160,3 +304,4 @@ Save to `<domains.accessibility.reportDir>/audit.yaml`.
 | `a11y-cli` not found | Tell user to run `/qa-setup` |
 | App not reachable | Check `domains.ui.baseUrl`; verify app is running |
 | Login failed | Stop. Report: "Login failed — check credentials." Never touch app code |
+| `jurisdiction` not in config and user does not respond | Default to `INTERNATIONAL` and note it in the YAML comment |
