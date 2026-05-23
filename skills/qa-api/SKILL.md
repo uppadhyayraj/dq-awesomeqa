@@ -1,12 +1,24 @@
 ---
 name: qa-api
-description: Plan, generate, and heal API tests using the democratize-quality MCP server. Reads API config from dq-qa.config.json. Covers REST and GraphQL APIs. Produces Playwright/Jest/Postman tests and an HTML report. Use when you need API test coverage or have failing API tests to fix.
+description: Create an API test plan using the democratize-quality MCP server. Reads test scope from qa-plan.md and API config from dq-qa.config.json. Produces api-test-plan.md. Run /qa-exec to execute the tests.
 allowed-tools: Bash, Read, Write, Edit
 ---
 
-# qa-api — API Testing
+# qa-api — API Test Planning
 
-You are a senior QA consultant running API tests. You orchestrate three phases using the democratize-quality MCP server: **Plan → Generate → (Heal if needed)**. Explain what you're doing at each phase and interpret the results in QA terms — don't just dump raw output.
+You are a senior QA consultant creating an API test plan. Analyze the API schema and produce a comprehensive test plan that qa-exec will execute.
+
+## Progress checklist
+
+Output this checklist at the start, then output the updated list (with items checked off) after each step completes:
+
+```
+**qa-api — progress**
+- [ ] Read config
+- [ ] Read qa-plan.md for test scope
+- [ ] Run api_planner → api-test-plan.md
+- [ ] Summarize plan findings
+```
 
 ## Step 0 — Read config
 
@@ -16,20 +28,28 @@ cat dq-qa.config.json
 
 If not found, invoke qa-onboard first.
 
-Extract from config:
+Extract:
 - `domains.api.baseUrl` → `apiBaseUrl`
 - `domains.api.schemaUrl` → `schemaUrl` (or `domains.api.schemaPath` → `schemaPath`)
 - `domains.api.reportDir` → `reportDir`
 
 If `domains.api.enabled` is false:
-> "API testing is disabled in `dq-qa.config.json`. Run `/qa-onboard` and enable the API domain to use this skill."
+> "API testing is disabled in `dq-qa.config.json`. Run `/qa-onboard` and enable the API domain."
 
-## Phase 1 — Test Planning
+## Step 1 — Read qa-plan.md for test scope
+
+```bash
+cat qa-plan.md 2>/dev/null
+```
+
+Extract from the "API" section: which test categories are in scope.
+
+If `qa-plan.md` does not exist or has no API section, use all categories: `["functional", "security", "error-handling", "edge-cases"]`.
+
+## Step 2 — Run api_planner
 
 Tell the user:
-> "**Phase 1: Test Planning** — I'm analyzing your API schema to identify all endpoints and generate a comprehensive test plan. This covers happy paths, error cases, auth flows, and edge cases."
-
-Call `api_planner` from the democratize-quality MCP server:
+> "Analyzing your API schema to generate a comprehensive test plan. Categories in scope: <categories>."
 
 ```javascript
 await tools.api_planner({
@@ -40,108 +60,31 @@ await tools.api_planner({
   includeSecurity: true,
   includeErrorHandling: true,
   outputPath: "./api-test-plan.md",
-  testCategories: ["functional", "security", "performance", "integration", "edge-cases"],
+  testCategories: <categories from qa-plan.md or all four>,
   validateEndpoints: false
 })
 ```
 
-After the tool returns, summarize for the user:
+After the tool returns, summarize:
 - How many endpoints were discovered
 - How many test scenarios were generated
 - Key authentication flows identified
-- Any schema warnings to be aware of
-
-## Phase 2 — Test Generation
-
-Tell the user:
-> "**Phase 2: Test Generation** — Generating executable test code from the plan. I'll detect your existing test framework automatically."
-
-Call `api_project_setup` first:
-
-```javascript
-await tools.api_project_setup({
-  outputDir: "./tests"
-})
-```
-
-Then generate tests:
-
-```javascript
-await tools.api_generator({
-  testPlanPath: "./api-test-plan.md",
-  outputFormat: setupResult.config.framework,  // playwright, jest, or postman
-  language: setupResult.config.language,       // typescript or javascript
-  projectInfo: {
-    hasTypeScript: setupResult.config.hasTypeScript,
-    hasPlaywrightConfig: setupResult.config.hasPlaywrightConfig,
-    hasJestConfig: setupResult.config.hasJestConfig
-  },
-  outputDir: "./tests",
-  sessionId: "qa-api-" + Date.now(),
-  includeAuth: true,
-  includeSetup: true,
-  baseUrl: config.domains.api.baseUrl
-})
-```
-
-After generation, explain what was created:
-- How many test files
-- Which frameworks/formats
-- Where the files are located
-- What the user should review before running
-
-## Phase 3 — Heal failing tests (only if tests are already failing)
-
-If the user mentions existing tests are failing, or after running tests they report failures:
-
-Tell the user:
-> "**Phase 3: Test Healing** — I'll diagnose and fix the failing tests automatically. I'll back up originals before making changes."
-
-```javascript
-await tools.api_healer({
-  testPath: "<failing test file path>",
-  testType: "auto",
-  sessionId: "qa-heal-" + Date.now(),
-  maxHealingAttempts: 3,
-  autoFix: true,
-  backupOriginal: true,
-  healingStrategies: [
-    "schema-update",
-    "endpoint-fix",
-    "auth-repair",
-    "data-correction",
-    "assertion-update"
-  ]
-})
-```
-
-After healing, explain:
-- What was wrong (categorize by failure type)
-- What was fixed
-- What the user should verify manually
+- Any schema warnings
 
 ## Closing
 
-After all phases complete:
-
-> **API testing complete.**
+> **Test plan saved to `api-test-plan.md`.**
 >
-> - 📋 Test plan: `api-test-plan.md`
-> - 🧪 Generated tests: `./tests/`
-> - 📊 Report: `<reportDir>`
+> - Endpoints discovered: <N>
+> - Test scenarios: <N>
+> - Categories covered: <list>
 >
-> **Key findings:** <summarize top 2-3 findings from the plan>
->
-> **Recommended next steps:**
-> 1. Review and run the generated tests
-> 2. Run `/qa-a11y` to check the UI flows for accessibility issues
-> 3. Run `/qa-perf` to validate performance under load
+> Run `/qa-exec` to execute the API tests.
 
 ## Failure protocol
 
 | Situation | Response |
 |-----------|---------|
-| Schema URL not reachable | Try schemaPath if a local file exists. If neither works, ask user to check the URL |
-| api_planner returns no endpoints | Check if schema format is supported. Ask user to verify the schema file is valid |
-| Generated tests fail immediately | Run Phase 3 (healing) on the newly generated tests |
+| Schema URL not reachable | Try `schemaPath` if a local file exists. Ask user to check the URL |
+| api_planner returns no endpoints | Verify schema format is supported. Ask user to check the schema file |
 | MCP server not found | Tell user to run `/qa-setup` to register the democratize-quality MCP server |
