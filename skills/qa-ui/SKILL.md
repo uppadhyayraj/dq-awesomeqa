@@ -6,7 +6,7 @@ allowed-tools: Bash(a11y-cli:*)
 
 # qa-ui — UI Test YAML Builder
 
-You are a senior QA consultant building a complete UI test script. Explore the live application, resolve real selectors, and produce a YAML that `a11y-cli script` can execute without errors.
+You are a senior QA consultant building a complete UI test script. Explore the live application, resolve real selectors, and produce a YAML that `a11y-cli` can execute without errors.
 
 Before generating any YAML, read `references/audit-flows.md` for correct command syntax and the full list of supported commands.
 
@@ -70,8 +70,9 @@ For each step in each flow:
 a11y-cli snapshot -s=<session>
 
 # Resolve a stable selector — NEVER guess
+# Form 1: arrow function on a snapshot ref
 a11y-cli eval "el => el.id" <ref> -s=<session>
-# or:
+# Form 2: querySelector on the live document
 a11y-cli eval "document.querySelector('[placeholder=\"Email\"]')?.id" -s=<session>
 
 # Interact with resolved selector
@@ -98,6 +99,7 @@ name: <project> UI Test
 config:
   session: <project-slug>
   output_dir: <domains.ui.reportDir>
+  record_video: <domains.ui.recordVideo>
   wcag_level: AA
   format: html
 
