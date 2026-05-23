@@ -23,17 +23,18 @@ You have the dq-awesomeqa plugin. Use the Skill tool to invoke skills.
 
 1. /qa-setup      — once per machine: install a11y-cli, dq-nbomber, DQ MCP server
 2. /qa-onboard    — once per project: collect URLs/schema/a11y level → dq-qa.config.json
-3. /qa-plan       — unified QA strategy across all enabled domains
+3. /qa-plan       — orchestrate planning: collect requirements, dispatch domain skills
 4. /qa-impact     — when requirements change: update the plan
-5. Domain execution (any order based on risk):
-   - /qa-ui       — Playwright E2E + visual tests
-   - /qa-api      — API plan → generate → heal
-   - /qa-a11y     — WCAG accessibility audit
-   - /qa-perf     — load test scaffold + analysis
-6. /qa-triage     — categorize failures from any domain
-7. /qa-coverage   — find coverage gaps
-8. /qa-codegen    — generate test code / fix tests
-9. /qa-report     — unified summary across all domains
+5. Domain planning (produces artifacts, does not execute):
+   - /qa-ui       — explore live app, build ui-test.yaml
+   - /qa-api      — generate api-test-plan.md
+   - /qa-a11y     — add scan steps to ui-test.yaml (or standalone audit YAML)
+   - /qa-perf     — generate and validate dq-nbomber.yaml
+6. /qa-exec       — execute all domains in order: API → UI+A11y → Perf
+7. /qa-triage     — categorize failures from any domain
+8. /qa-coverage   — find coverage gaps
+9. /qa-codegen    — generate test code / fix tests
+10. /qa-report    — unified summary across all domains
 
 ## Config contract
 
