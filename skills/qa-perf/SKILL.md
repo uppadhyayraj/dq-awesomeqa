@@ -58,6 +58,8 @@ Invoke the `qa-setup` skill. Do not proceed with any other step until `/qa-setup
 ```bash
 cat skills/qa-perf/references/config-schema.json
 cat skills/qa-perf/references/yaml-examples.yaml
+cat skills/qa-perf/references/cli-reference.md
+cat skills/qa-perf/references/data-review.instructions.md
 cat dq-qa.config.json
 ```
 
@@ -234,7 +236,7 @@ For each data file, identify which endpoint's schema it feeds. Then check:
 5. **Length constraints** — check `minLength`/`maxLength` violations
 6. **Realistic values** — all records identical → server caching may mask real load; fake IDs (`prod_123`) → 404 on every request if API validates referential integrity
 
-Report findings and fix directly in the data files before continuing. See `skills/qa-perf/references/data-review.instructions.md` for the full review checklist.
+Report findings and fix directly in the data files before continuing. Apply the full review checklist from `data-review.instructions.md` (already read in Step 0).
 
 ---
 
@@ -353,7 +355,24 @@ assert:
 
 ### Gap 5 — Load simulation shape + thresholds
 
-`generate` emits generic defaults. Replace with values from the load parameters collected before running `generate`.
+`generate` emits this two-phase default for every scenario — recognise it and replace it entirely:
+
+```yaml
+# GENERATED DEFAULT (replace both phases and the root-level thresholds)
+loadSimulations:
+  - kind: rampingInject
+    rate: 10
+    interval: "00:00:01"
+    during: "00:00:30"
+  - kind: inject
+    rate: 10
+    interval: "00:00:01"
+    during: "00:01:00"
+thresholds:                   # ← root-level: silently ignored — move inside the scenario
+  - okRequest: "Percent > 95"
+```
+
+Replace with values from the load parameters collected before running `generate`.
 
 **First, apply any load parameters the user stated.** Translate natural language to YAML `kind`:
 

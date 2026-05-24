@@ -51,6 +51,8 @@ Invoke the `qa-setup` skill. Do not proceed with any other step until `/qa-setup
 ```bash
 cat skills/qa-a11y/references/wcag-scanning.md
 cat skills/qa-a11y/references/audit-flows.md
+cat skills/qa-a11y/references/keyboard-testing.md
+cat skills/qa-a11y/references/report-generation.md
 cat dq-qa.config.json
 ```
 

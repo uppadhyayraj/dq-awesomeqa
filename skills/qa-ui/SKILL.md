@@ -56,6 +56,8 @@ Invoke the `qa-setup` skill. Do not proceed with any other step until `/qa-setup
 
 ```bash
 cat skills/qa-ui/references/audit-flows.md
+cat skills/qa-ui/references/keyboard-testing.md
+cat skills/qa-ui/references/report-generation.md
 cat dq-qa.config.json
 ```
 
@@ -204,11 +206,11 @@ Write each YAML step the moment the stable selector is confirmed. Never write fr
 ```
 
 **Selector priority** — use the first that resolves via `eval`:
-1. `#id`
-2. `[data-testid="…"]` / `[data-test="…"]`
-3. `[name="…"]`
-4. Short, stable CSS selector → `button[type="submit"]`
-5. Role locator → `getByRole('button', { name: 'Sign in' })`
+1. Role locator → `getByRole('button', { name: 'Sign in' })` — tests accessible name + ARIA role; most resilient to DOM changes
+2. `#id`
+3. `[data-testid="…"]` / `[data-test="…"]`
+4. `[name="…"]`
+5. Short, stable CSS selector → `button[type="submit"]`
 
 **Never use snapshot refs (`e5`, `e12`) in the YAML** — they change on every page load.
 

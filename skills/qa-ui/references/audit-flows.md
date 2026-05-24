@@ -51,7 +51,9 @@ playwright-cli eval "document.querySelector('[type=\"password\"]')?.name" -s=aud
 # → "password"  →  use: ref: '[name="password"]'
 ```
 
-Priority for stable selectors: `#id` > `[name="…"]` > `[data-testid="…"]` > shortest unique CSS selector.
+Priority for stable selectors: `getByRole(…)` > `#id` > `[data-testid="…"]` > `[name="…"]` > shortest unique CSS selector.
+
+Role locators (`getByRole('button', { name: 'Sign in' })`) are highest priority — they verify accessible name and ARIA role, making them the most resilient to DOM changes and the closest to how screen readers navigate.
 
 Write the YAML using these resolved selectors — not the ephemeral `e5`/`e12` refs:
 
