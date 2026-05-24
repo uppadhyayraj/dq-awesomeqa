@@ -32,6 +32,7 @@ Output this checklist at the start, then re-emit with `[x]` after each step comp
 - [ ] Read references/audit-flows.md
 - [ ] Read config + requirements doc
 - [ ] Read qa-plan.md for flows
+- [ ] Confirm scope + write ui-test-plan.md
 - [ ] Write YAML header (before opening browser)
 - [ ] Open app in headed mode
 - [ ] Explore page by page — resolve selectors, write YAML steps
@@ -83,8 +84,32 @@ cat qa-plan.md 2>/dev/null
 
 Extract user flows from the "UI / Accessibility" section. Use the requirements doc content from Step 0 to fill in any gaps or add detail.
 
-If `qa-plan.md` does not exist, ask:
+If `qa-plan.md` does not exist or has no "UI / Accessibility" section, and the requirements doc has no flows either, ask:
 > "Which user flows should I test? Please list 3–5 critical paths (e.g. 'login → dashboard → create order → checkout')."
+
+Wait for the user's response before continuing.
+
+**Confirm scope before proceeding — always, regardless of source:**
+
+Show the derived flows and ask for confirmation:
+
+> "Here is the UI test plan I'll build:
+>
+> **Flows:**
+> <For each flow: Flow name → Page 1 → Page 2 → ...>
+>
+> **What will be scripted:** fill, click, navigate steps per flow; screenshots at key states; auth state saved after login for reuse across flows.
+>
+> Confirm to proceed, or tell me what to change."
+
+Wait for user confirmation.
+
+Once confirmed, write `<domains.ui.reportDir>/ui-test-plan.md` containing:
+- Project name, created date, base URL, video recording setting, report dir
+- Each flow with its page sequence and a summary of key interactions to be scripted
+- Entry conditions: app must be running at `<baseUrl>`; note that required env vars will be listed after script is built
+- Exit criteria: all interaction steps pass (0 selector failures); screenshot at each key state
+- Artifact: `ui-test.yaml`
 
 ## Step 2 — Write YAML header (before opening the browser)
 

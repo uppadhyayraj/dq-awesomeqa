@@ -30,6 +30,7 @@ Output this checklist at the start, then re-emit with `[x]` after each step comp
 - [ ] Collect schema file (REQUIRED)
 - [ ] Collect BASE_URL (REQUIRED)
 - [ ] Collect load parameters
+- [ ] Confirm scope + write perf-test-plan.md
 - [ ] Generate scaffold (dq-nbomber generate)
 - [ ] Review generated data files
 - [ ] Fix Gap 1 — fake credentials
@@ -155,6 +156,36 @@ Apply endpoint filters derived from qa-plan.md, the requirements doc, and any ex
 | User says "skip admin / skip Z" | `--exclude "METHOD /path"` |
 
 **Always set `--include` when flows are specified** — without it, `generate` scaffolds every endpoint in the schema, producing far more scenarios than intended.
+
+---
+
+## Confirm scope + write perf-test-plan.md
+
+Before running `generate`, present the full load test plan and ask for confirmation:
+
+> "Here is the performance test plan I'll generate:
+>
+> **Endpoints in scope:**
+> <list each: METHOD /path — purpose>
+>
+> **Load profile:** <e.g. 'inject 10 req/s for 60 seconds'>
+> **Thresholds:** p99 < `<p99LatencyMs>`ms | ok requests > `<okRequestPercent>`%
+> **Schema:** `<schema path or URL>`
+> **Base URL:** `<BASE_URL>`
+>
+> Confirm to proceed, or tell me what to change."
+
+Wait for user confirmation.
+
+Once confirmed, write `<domains.performance.reportDir>/perf-test-plan.md` containing:
+- Project name, created date, schema path/URL, base URL, report dir
+- Table of endpoints in scope: method, path, purpose (e.g. authentication, product search)
+- Load profile: kind (inject/keepConstant/ramp), rate or copies, duration
+- Thresholds: p99 latency limit and ok-request percentage from config
+- Data requirements: `data/users.csv` must be populated with real test accounts before running
+- Entry conditions: `dq-nbomber.yaml` validated; real credentials in `data/users.csv`
+- Exit criteria: all thresholds pass; 0 validation errors
+- Artifact: `./load-tests/dq-nbomber.yaml`
 
 ---
 

@@ -27,6 +27,7 @@ Output this checklist at the start, then re-emit with `[x]` after each step comp
 - [ ] Read config
 - [ ] Confirm jurisdiction (required)
 - [ ] Read qa-plan.md for pages to audit
+- [ ] Confirm scope with user + write a11y-test-plan.md
 - [ ] Detect mode (enhance ui-test.yaml or standalone)
 - [ ] Open browser + navigate each page
 - [ ] Add a11y commands contextually per page
@@ -81,6 +82,32 @@ cat qa-plan.md 2>/dev/null
 ```
 
 Extract pages and flows to audit from the "UI / Accessibility" section.
+
+If `qa-plan.md` does not exist or has no "UI / Accessibility" section, and the requirements doc (read in Step 0) has no flows or pages either, ask:
+> "Which pages or flows should I audit for accessibility? List 3–5 key pages or paths (e.g. 'Login page, Dashboard, Checkout flow'). I'll navigate each one and add the appropriate WCAG checks."
+
+Wait for the user's response before continuing.
+
+**Confirm scope before proceeding — always, regardless of source:**
+
+Show the derived audit scope and ask for confirmation:
+
+> "Here is the accessibility audit I'll run:
+>
+> **Pages / flows to audit:** <list>
+> **WCAG Level:** <level> | **Jurisdiction:** <jurisdiction>
+> **Checks planned:** scan + keyboard on every page; form check on pages with inputs; alt-text on pages with images; contrast + headings on content-heavy pages; screen-reader once on the richest page.
+>
+> Confirm to proceed, or tell me what to change."
+
+Wait for user confirmation.
+
+Once confirmed, write `<domains.accessibility.reportDir>/a11y-test-plan.md` containing:
+- Project name, created date, WCAG level, jurisdiction, base URL, report dir
+- For each page/flow: page name, source (requirements / qa-plan / user input), and which a11y checks are planned (scan, form, alt-text, contrast, headings, keyboard, screen-reader)
+- Entry conditions: app running at `<baseUrl>`; `ui-test.yaml` present (primary mode) or standalone mode will be used
+- Exit criteria: 0 critical/serious violations at WCAG `<level>`
+- Artifact: updated `ui-test.yaml` (primary mode) or `<reportDir>/audit.yaml` (standalone mode)
 
 ## Step 2 — Detect mode
 

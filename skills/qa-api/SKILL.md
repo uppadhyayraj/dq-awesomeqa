@@ -21,6 +21,7 @@ Output this checklist at the start, then output the updated list (with items che
 - [ ] Check required tools (MCP server)
 - [ ] Read config + requirements doc
 - [ ] Derive in-scope endpoint list
+- [ ] Confirm scope with user
 - [ ] Run api_planner → api-test-plan.md
 - [ ] Enforce scope — remove out-of-scope sections
 - [ ] Summarize plan findings
@@ -86,11 +87,26 @@ In-scope endpoints:
 (etc.)
 ```
 
-**If neither source specifies particular endpoints:** use the full schema (no filter). State this explicitly:
-> "No endpoint scope found in requirements or qa-plan — all schema endpoints will be tested."
+**If neither source specifies particular endpoints**, ask the user before continuing:
+> "I couldn't find specific endpoint or flow scope in your requirements doc or qa-plan.md. Which API endpoints or features should I generate tests for?
+> - List specific paths (e.g. `POST /auth/login`, `GET /products`)
+> - Describe features (e.g. 'authentication flows and order management')
+> - Or say 'all' to generate tests for every endpoint in the schema"
 
-**If scope is derived:** state it:
-> "Scope restricted to <N> endpoints from requirements / qa-plan."
+Wait for the user's response before continuing.
+
+**Confirm scope before proceeding — always, regardless of source:**
+
+Show the derived scope and ask for confirmation:
+
+> "Here is the API test plan I'll generate:
+>
+> **In-scope endpoints:** <list each path + method, or 'All schema endpoints'>
+> **Test categories:** <list>
+>
+> Confirm to proceed, or tell me what to add or remove."
+
+Wait for user confirmation before calling `api_planner`.
 
 ## Step 2 — Run api_planner and enforce scope
 
