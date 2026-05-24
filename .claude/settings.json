@@ -1,0 +1,56 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node hooks/sanitize-input.js"
+          },
+          {
+            "type": "command",
+            "command": "node hooks/audit-log.js"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node hooks/qa-safety.js"
+          },
+          {
+            "type": "command",
+            "command": "node hooks/audit-log.js"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node hooks/audit-log.js"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash hooks/stop"
+          },
+          {
+            "type": "command",
+            "command": "node hooks/audit-log.js"
+          }
+        ]
+      }
+    ]
+  }
+}
