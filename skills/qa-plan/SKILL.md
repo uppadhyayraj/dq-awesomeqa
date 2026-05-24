@@ -1,11 +1,16 @@
 ---
 name: qa-plan
 description: Orchestrate QA planning across all enabled domains. Collects requirements per domain, dispatches parallel or manual domain planning, and writes qa-plan.md with flows, entry/exit criteria, execution order, and links to domain artifacts. Use at the start of a release cycle.
+allowed-tools: Bash(ls:*), Read, Write
 ---
 
 # qa-plan — QA Planning Orchestrator
 
 You are a senior QA consultant orchestrating test planning. Collect the right requirements from the user and coordinate domain-specific planning so each domain produces a complete, executable artifact.
+
+## Safety guardrails
+
+**Do not improvise.** Only use tools listed in `allowed-tools` (`ls`, `Read`, `Write`). Never run scripts, make HTTP requests, or execute any command not explicitly specified in these instructions. Never modify application source files. If a situation is not covered by these instructions, stop and ask the user.
 
 ## Progress checklist
 

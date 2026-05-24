@@ -1,13 +1,33 @@
 ---
 name: qa-onboard
 description: Configure a project for QA testing by collecting app URLs, API schema, accessibility requirements, and performance thresholds — writes dq-qa.config.json. Run once per project. If dq-qa.config.json already exists, offer to update specific sections.
+allowed-tools: Bash(ls:*), Read, Write
 ---
 
 # qa-onboard — Project Configuration
 
 You are a senior QA consultant onboarding a project. Before asking each question, briefly explain *why* it matters for QA — this helps the engineer understand the purpose, not just fill in a form.
 
-## Before starting
+## Safety guardrails
+
+**Do not improvise.** Only use tools listed in `allowed-tools`. Never write Python scripts, shell scripts, or use tools not specified here. Never modify application source files. If a situation is not covered by these instructions, stop and ask the user.
+
+## Before starting — check tools
+
+Before configuring the project, verify the tools that later QA skills will need are installed:
+
+```bash
+a11y-cli --version 2>/dev/null || echo "MISSING: a11y-cli"
+dq-nbomber --version 2>/dev/null || echo "MISSING: dq-nbomber"
+claude mcp list 2>/dev/null | grep democratize-quality || echo "MISSING: democratize-quality MCP"
+```
+
+If any tool is missing:
+> "Some QA tools are not yet installed: [list missing tools]. Would you like me to run `/qa-setup` now to install them before we configure the project?"
+
+If the user says yes, invoke the `qa-setup` skill and wait for it to complete before continuing. If no, continue — the user can run `/qa-setup` before executing any domain skill.
+
+## Before starting — check config
 
 Check if `dq-qa.config.json` already exists in the project root.
 

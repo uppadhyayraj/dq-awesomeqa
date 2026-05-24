@@ -1,11 +1,16 @@
 ---
 name: qa-setup
 description: Install and configure all tools required by dq-awesomeqa — a11y-cli, dq-nbomber CLI, and the democratize-quality MCP server. Run once per developer machine before using any other skill.
+allowed-tools: Bash, Read
 ---
 
 # qa-setup — Environment Setup
 
 You are acting as a senior QA consultant helping a QA engineer set up their machine for the first time. Explain each tool's purpose before installing it — the engineer should understand *why* each tool exists, not just that it's being installed.
+
+## Safety guardrails
+
+**Only install the three tools listed below.** Do not install other packages, modify system configuration, or run any command not explicitly listed in this skill. If an installation fails in an unexpected way, stop and report the error to the user rather than attempting alternative approaches.
 
 ## What gets installed
 
@@ -13,7 +18,7 @@ You are acting as a senior QA consultant helping a QA engineer set up their mach
 |------|---------|----------------|
 | `a11y-cli` | WCAG accessibility audits + Playwright browser automation for UI testing | `npm install -g @democratize-quality/accessibility-cli` |
 | `dq-nbomber` | Load test scenario generation, validation, and execution | `dotnet tool install -g dq-nbomber-cli` |
-| DQ MCP server | AI-powered API test planning, code generation, and test healing | `claude mcp add democratize-quality npx @democratize-quality/mcp-server` |
+| DQ MCP server | AI-powered API test planning, code generation, and test healing | `claude mcp add democratize-quality npx @democratize-quality/mcp-server --scope project -e OUTPUT_DIR=./qa-reports` |
 
 ## Step-by-step workflow
 
@@ -55,10 +60,21 @@ Validate: `dq-nbomber --version` should return a version string.
 > "The democratize-quality MCP server gives Claude access to API testing tools — it can analyze your OpenAPI or GraphQL schema, generate Playwright/Jest/Postman tests, and automatically heal failing tests. It runs as a background process managed by Claude Code."
 
 ```bash
-claude mcp add democratize-quality npx @democratize-quality/mcp-server
+claude mcp add democratize-quality npx @democratize-quality/mcp-server \
+  --scope project \
+  -e OUTPUT_DIR=./qa-reports
 ```
 
-Validate: `claude mcp list` should show `democratize-quality` in the list.
+- `--scope project` writes the registration to `.mcp.json` in the project root so all developers who clone the repo get the MCP server automatically — no need to re-run `/qa-setup` on each machine.
+- `-e OUTPUT_DIR=./qa-reports` sets the server's default output directory to a local folder inside the repo. Change `./qa-reports` to match the `reportDir` values in your `dq-qa.config.json` if different.
+
+> **Do not put API keys or secrets in `-e` flags.** `-e` values are written to `.mcp.json`, which is committed to git. Use `.env` files or CI secrets for sensitive values instead.
+
+Validate: `claude mcp list` should show `democratize-quality` in the list. Also confirm `.mcp.json` was created in the project root:
+
+```bash
+cat .mcp.json
+```
 
 ### Step 3 — Final validation
 
@@ -68,6 +84,7 @@ Run a quick smoke test for each tool:
 a11y-cli --version
 dq-nbomber --version
 claude mcp list | grep democratize-quality
+cat .mcp.json
 ```
 
 ### Step 4 — Closing summary

@@ -1,6 +1,7 @@
 ---
 name: qa-perf
 description: Generate and validate a dq-nbomber.yaml load test configuration. Collects API schema file, BASE_URL, and load parameters before running generate, then fixes the 5 known generation gaps, reviews data files, and validates the YAML before handoff. Does not run the test — run /qa-exec for execution steps.
+allowed-tools: Bash(dq-nbomber:*), Read, Write, Edit
 ---
 
 # qa-perf — Performance Test YAML Builder
@@ -8,6 +9,10 @@ description: Generate and validate a dq-nbomber.yaml load test configuration. Co
 You are a senior QA consultant setting up load tests. Your job is to produce a validated `dq-nbomber.yaml` that the user can run. Never write the YAML from scratch — always use `generate` first.
 
 Before generating any YAML, read `references/config-schema.json` for correct YAML keys and `references/yaml-examples.yaml` for working patterns.
+
+## Safety guardrails
+
+**Do not improvise.** Only use tools listed in `allowed-tools` (`dq-nbomber`, `Read`, `Write`, `Edit`). Never write Python scripts, Node.js scripts, shell scripts, or use `curl` to call the API directly. Never modify application source files. If a situation is not covered by these instructions, stop and ask the user.
 
 ## Safety note
 
@@ -19,6 +24,7 @@ Output this checklist at the start, then re-emit with `[x]` after each step comp
 
 ```
 **qa-perf — progress**
+- [ ] Check required tools (dq-nbomber)
 - [ ] Read references (config-schema.json + yaml-examples.yaml)
 - [ ] Read config + qa-plan.md
 - [ ] Collect schema file (REQUIRED)
@@ -34,6 +40,17 @@ Output this checklist at the start, then re-emit with `[x]` after each step comp
 - [ ] Validate YAML (dq-nbomber validate)
 - [ ] Hand off to user
 ```
+
+## Tool check — run before anything else
+
+```bash
+dq-nbomber --version
+```
+
+If the command fails or is not found:
+> "`dq-nbomber` is not installed. Invoking `/qa-setup` to install it now."
+
+Invoke the `qa-setup` skill. Do not proceed with any other step until `/qa-setup` completes and `dq-nbomber --version` returns a version string.
 
 ## Step 0 — Read references and config
 
@@ -70,6 +87,14 @@ cat qa-plan.md 2>/dev/null
 Extract from the "Performance" section:
 - Load profile (e.g. "10 req/s for 60s")
 - Which flows to load test
+- Specific endpoints in scope → translate to `--include "METHOD /path"` flags for Step 2
+
+If the requirements doc (Step 0) specifies flows (e.g. "Happy Path E2E only"), derive the endpoint list from it and note it as the `--include` filter.
+
+If **neither** qa-plan.md nor the requirements doc specifies which flows or endpoints to test, ask:
+> "Which API flows should I load test? List the endpoints (e.g. `POST /api/login`, `GET /api/products`) or describe the flows (e.g. 'login + product search + checkout'). I'll use these as `--include` filters so only the relevant endpoints are generated."
+
+Wait for the user's response before continuing.
 
 ---
 
@@ -79,28 +104,16 @@ Extract from the "Performance" section:
 
 ### Input 1 — API Schema (REQUIRED)
 
-`generate` requires a schema to produce the scaffold. Accept any of these forms:
-- A **local file path**: `openapi.yaml`, `swagger.json`, `apiSchema.json`, `schema.graphql`, etc.
-- A **`#file:` attachment**: extract the file path from the attachment; use that path as the spec argument
+**Always ask the user upfront — do not attempt auto-detection:**
+
+> "Please provide the path to your API schema file (OpenAPI `.yaml`/`.json` or GraphQL `.graphql`/`.gql`). This is required before I can generate the test scaffold."
+
+Wait for the user's response before proceeding. Do not use `ls` to search for candidate filenames; the user must supply the path explicitly.
+
+Once provided, accept any of these forms:
+- A **local file path**: e.g. `./docs/openapi.yaml`, `./schema.graphql`
+- A **`#file:` attachment**: extract the file path from the attachment and use it
 - A **live GraphQL URL**: pass directly; `generate` fetches the schema via introspection
-
-First, try to locate the schema yourself:
-
-```bash
-# Look in the project root for common schema file names
-ls openapi.yaml openapi.json swagger.json swagger.yaml apiSchema.json schema.graphql schema.gql 2>/dev/null
-```
-
-If `domains.performance.schemaUrl` is set in config, check if it is a local file path:
-```bash
-ls <domains.performance.schemaUrl> 2>/dev/null
-```
-
-If a schema file is found, confirm it with the user:
-> "Found schema at `<path>`. Using this for `generate` — correct?"
-
-If **no schema is found**, ask before proceeding:
-> "Please share the path to your API schema file (OpenAPI `.yaml`/`.json`, GraphQL `.graphql`/`.gql`, or a live GraphQL endpoint URL for introspection)."
 
 ### Input 2 — BASE_URL (REQUIRED)
 
@@ -112,6 +125,14 @@ cat .env 2>/dev/null || cat .env.example 2>/dev/null
 
 If `BASE_URL` is not found anywhere, ask:
 > "What is the base URL for the API during load testing? (Use a non-production environment unless the load profile is very low — e.g. `http://localhost:3000`)"
+
+**Normalize the BASE_URL before use — strip any trailing `/`:**
+
+```bash
+BASE_URL="${BASE_URL%/}"
+```
+
+A trailing slash causes double-slash URLs (`http://localhost:3000//api/endpoint`) that fail every request.
 
 ### Input 3 — Load Parameters (collect and hold for Gap 5)
 
@@ -125,9 +146,15 @@ If none are available, ask:
 
 **Do not pass load parameters to `generate`** — the command does not accept them. Record them and apply as YAML edits in Gap 5.
 
-Also note any endpoint filters the user mentions (e.g. "only test checkout", "skip admin"):
-- "only test X and Y" → `--include "METHOD /path,METHOD /path"`
-- "skip Z" → `--exclude "METHOD /path"`
+Apply endpoint filters derived from qa-plan.md, the requirements doc, and any explicit user instructions:
+
+| Source | Flag to add |
+|---|---|
+| qa-plan.md or requirements doc list specific flows | `--include "METHOD /path,METHOD /path"` |
+| User says "only test X and Y" | `--include "METHOD /path,METHOD /path"` |
+| User says "skip admin / skip Z" | `--exclude "METHOD /path"` |
+
+**Always set `--include` when flows are specified** — without it, `generate` scaffolds every endpoint in the schema, producing far more scenarios than intended.
 
 ---
 

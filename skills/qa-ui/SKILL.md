@@ -1,7 +1,7 @@
 ---
 name: qa-ui
 description: Explore a live web application and build a complete ui-test.yaml interaction script for accessibility-cli. Follows the same live-explore workflow as accessibility-cli — writes YAML header first, then resolves real selectors page by page and writes each step the moment it is confirmed. Produces interaction steps only (no scan steps) — run /qa-a11y to add accessibility scanning, then /qa-exec to execute.
-allowed-tools: Bash(a11y-cli:*)
+allowed-tools: Bash(a11y-cli:*), Read, Write
 ---
 
 # qa-ui — UI Interaction YAML Builder
@@ -28,6 +28,7 @@ Output this checklist at the start, then re-emit with `[x]` after each step comp
 
 ```
 **qa-ui — progress**
+- [ ] Check required tools (a11y-cli)
 - [ ] Read references/audit-flows.md
 - [ ] Read config + requirements doc
 - [ ] Read qa-plan.md for flows
@@ -38,6 +39,17 @@ Output this checklist at the start, then re-emit with `[x]` after each step comp
 - [ ] Save ui-test.yaml
 - [ ] Tell user required env vars
 ```
+
+## Tool check — run before anything else
+
+```bash
+a11y-cli --version
+```
+
+If the command fails or is not found:
+> "`a11y-cli` is not installed. Invoking `/qa-setup` to install it now."
+
+Invoke the `qa-setup` skill. Do not proceed with any other step until `/qa-setup` completes and `a11y-cli --version` returns a version string.
 
 ## Step 0 — Read references and config
 

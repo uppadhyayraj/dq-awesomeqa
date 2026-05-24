@@ -1,12 +1,16 @@
 ---
 name: qa-api
 description: Create an API test plan using the democratize-quality MCP server. Reads test scope from qa-plan.md and API config from dq-qa.config.json. Produces api-test-plan.md. Run /qa-exec to execute the tests.
-allowed-tools: Bash, Read, Write, Edit
+allowed-tools: Bash(claude:*, ls:*), Read, Write
 ---
 
 # qa-api — API Test Planning
 
-You are a senior QA consultant creating an API test plan. Analyze the API schema and produce a comprehensive test plan that qa-exec will execute.
+You are a senior QA consultant creating an API test plan.
+
+## Safety guardrails
+
+**Do not improvise.** Only use tools listed in `allowed-tools`. Never write Python scripts, shell scripts, or use `curl` in place of the MCP tools. Never modify application source files. If a situation is not covered by these instructions, stop and ask the user. Analyze the API schema and produce a comprehensive test plan that qa-exec will execute.
 
 ## Progress checklist
 
@@ -14,11 +18,23 @@ Output this checklist at the start, then output the updated list (with items che
 
 ```
 **qa-api — progress**
+- [ ] Check required tools (MCP server)
 - [ ] Read config
 - [ ] Read qa-plan.md for test scope
 - [ ] Run api_planner → api-test-plan.md
 - [ ] Summarize plan findings
 ```
+
+## Tool check — run before anything else
+
+```bash
+claude mcp list | grep democratize-quality
+```
+
+If `democratize-quality` is not listed:
+> "The democratize-quality MCP server is not registered. Invoking `/qa-setup` to install it now."
+
+Invoke the `qa-setup` skill. Do not proceed with any other step until `/qa-setup` completes and `claude mcp list` shows `democratize-quality`.
 
 ## Step 0 — Read config
 

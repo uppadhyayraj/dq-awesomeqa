@@ -1,7 +1,7 @@
 ---
 name: qa-a11y
 description: Add WCAG accessibility commands to an existing ui-test.yaml by opening the live app and contextually deciding which a11y checks apply per page (Primary mode), or build a complete standalone audit YAML when no ui-test.yaml exists (Standalone mode). Reads jurisdiction and conformance level from dq-qa.config.json. Does not execute — run /qa-exec when ready.
-allowed-tools: Bash(a11y-cli:*)
+allowed-tools: Bash(a11y-cli:*), Read, Write, Edit
 ---
 
 # qa-a11y — Accessibility Audit Enhancer
@@ -22,6 +22,7 @@ Output this checklist at the start, then re-emit with `[x]` after each step comp
 
 ```
 **qa-a11y — progress**
+- [ ] Check required tools (a11y-cli)
 - [ ] Read references/wcag-scanning.md + audit-flows.md
 - [ ] Read config
 - [ ] Confirm jurisdiction (required)
@@ -32,6 +33,17 @@ Output this checklist at the start, then re-emit with `[x]` after each step comp
 - [ ] Update YAML config block (wcag_level + jurisdiction)
 - [ ] Save updated YAML
 ```
+
+## Tool check — run before anything else
+
+```bash
+a11y-cli --version
+```
+
+If the command fails or is not found:
+> "`a11y-cli` is not installed. Invoking `/qa-setup` to install it now."
+
+Invoke the `qa-setup` skill. Do not proceed with any other step until `/qa-setup` completes and `a11y-cli --version` returns a version string.
 
 ## Step 0 — Read references and config
 

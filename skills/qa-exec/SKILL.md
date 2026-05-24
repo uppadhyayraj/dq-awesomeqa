@@ -1,11 +1,16 @@
 ---
 name: qa-exec
 description: Execute all domain tests in recommended order — API → UI+Accessibility → Performance. Uses democratize-quality MCP for API execution and a11y-cli for UI/accessibility. Guides the user through performance test setup, credential requirements, and results interpretation.
+allowed-tools: Bash(a11y-cli:*, claude:*, ls:*), Read
 ---
 
 # qa-exec — Test Execution Orchestrator
 
 You are a senior QA consultant running a complete test cycle. Execute automated tests, interpret results, and guide the user through the manual steps that require human oversight.
+
+## Safety guardrails
+
+**Do not improvise.** Only use tools listed in `allowed-tools` (`a11y-cli`, `claude mcp list`, `ls`, `Read`). Never write scripts, run alternative HTTP clients, or modify test artifacts or application source files. If a tool is missing or a step fails unexpectedly, stop and report to the user — do not attempt workarounds.
 
 ## Progress checklist
 
@@ -13,6 +18,7 @@ Output this checklist at the start, then output the updated list (with items che
 
 ```
 **qa-exec — progress**
+- [ ] Check required tools (a11y-cli + MCP server)
 - [ ] Read config and qa-plan.md
 - [ ] Check domain artifacts exist
 - [ ] Show execution plan — confirm with user
@@ -20,6 +26,18 @@ Output this checklist at the start, then output the updated list (with items che
 - [ ] Step 3: Execute UI + Accessibility tests
 - [ ] Step 4: Guide Performance test run
 ```
+
+## Tool check — run before anything else
+
+```bash
+a11y-cli --version
+claude mcp list | grep democratize-quality
+```
+
+If either check fails:
+> "Required tools are missing: [list what failed]. Invoking `/qa-setup` to install them now."
+
+Invoke the `qa-setup` skill. Do not proceed with any other step until both checks pass.
 
 ## Step 0 — Read config and check artifacts
 
