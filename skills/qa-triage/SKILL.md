@@ -1,24 +1,43 @@
 ---
 name: qa-triage
 description: Analyze test failures from any domain, categorize by severity and type, identify root causes, and produce a structured triage report with recommended owners and next actions. Use after any test run that produced failures.
+allowed-tools: Bash(curl:*, ls:*), Read, Write
 ---
 
 # qa-triage — Failure Triage
 
 You are a senior QA consultant doing triage. Good triage is not just categorizing bugs — it's answering: "What is the business impact? Who owns this? What needs to happen before we can ship?"
 
+## Safety guardrails
+
+**Do not improvise.** Only use tools listed in `allowed-tools`. Never write Python scripts, shell scripts, or use tools not specified here. Never modify application source files. If a situation is not covered by these instructions, stop and ask the user.
+
+## Progress checklist
+
+Output this checklist at the start, then output the updated list (with items checked off) after each step completes:
+
+```
+**qa-triage — progress**
+- [ ] Gather failure input
+- [ ] Read config + requirements doc
+- [ ] Load schema and artifacts for relevant domains
+- [ ] Categorize failures (with schema cross-reference where applicable)
+- [ ] Requirements coverage check
+- [ ] Write triage report
+```
+
 ## Step 0 — Gather failure input
 
 Accept failures in any form:
 - Paste raw test output into the conversation
-- Provide a file path: `cat <path>` to read it
+- Provide a file path: read it with the Read tool
 - Point to a report directory — read the report files
 - Describe failures in conversation
 
 If no failures are provided:
 > "Please share the test output or point me to the report files. You can paste the output directly, provide a file path, or tell me where the reports are stored."
 
-## Step 1 — Read config (for context)
+## Step 1 — Read config and requirements doc
 
 ```bash
 cat dq-qa.config.json
@@ -26,7 +45,63 @@ cat dq-qa.config.json
 
 This helps identify which domain the failures belong to.
 
-## Step 2 — Categorize each failure
+Extract:
+- `domains.api.schemaUrl` and/or `domains.api.schemaPath`
+- `domains.performance.schemaUrl`
+- `requirements.docsPath`
+
+If `requirements.docsPath` is set, read it now:
+
+```bash
+cat <requirements.docsPath> 2>/dev/null
+# or if it's a directory:
+ls <requirements.docsPath> && cat <requirements.docsPath>/*.md 2>/dev/null
+```
+
+Keep the requirements content in context — it will be used in the coverage check (Step 4).
+
+## Step 2 — Load schema and test artifacts for relevant domains
+
+Run this step only for domains that have failures. Skip sections for domains with no failures.
+
+### If API failures are present
+
+Load the API schema to use as ground truth when classifying failures:
+
+**If `schemaPath` is set (local file):**
+Read the file directly using the Read tool.
+
+**If `schemaUrl` is set (remote URL):**
+```bash
+curl -s "<schemaUrl>"
+```
+
+Once loaded, note for each unique failing endpoint in the test output:
+- Does this endpoint path + HTTP method exist in the schema?
+- What response codes does the schema declare for it?
+- Are any required request fields or headers documented?
+
+This cross-reference determines whether a failure is a **test bug** (endpoint/method wrong per schema) or a **product bug** (endpoint exists but response violates contract).
+
+### If Performance failures are present
+
+Load both the schema and the nbomber scenario file:
+
+**Schema** — same as above (schemaPath or schemaUrl).
+
+**nbomber scenario file:**
+```bash
+cat ./load-tests/dq-nbomber.yaml 2>/dev/null
+```
+
+For each scenario in the YAML, check:
+1. **Endpoint exists in schema?** — Does the path + HTTP method match a schema definition?
+2. **URL format correct?** — No double slashes (`//`), correct base URL, path params in `{param}` format
+3. **Extraction correctness** — Are path parameters substituted correctly, or are template placeholders (`{userId}`) left unresolved?
+
+Flag any mismatch as a **test generation bug** — not a product defect.
+
+## Step 3 — Categorize each failure
 
 For each failure, determine:
 
@@ -39,15 +114,35 @@ For each failure, determine:
 **Domain:**
 - UI / API / Accessibility / Performance
 
-**Type:**
-- **Product bug** — application code is wrong
-- **Test bug** — test is wrong or brittle, not the app
+**Type — use schema evidence where available:**
+- **Product bug** — application code is wrong. For API/Perf: endpoint exists in schema, method and request are correct, but the response violates the contract or is too slow
+- **Test bug** — test is wrong or brittle. For API/Perf: endpoint/method not found in schema, URL has formatting errors (double slash, unresolved path params), or test setup is incorrect
+- **Test generation bug** — nbomber or api_planner extracted incorrect endpoint data from the schema; the test was never valid
 - **Environment issue** — infra/config problem, not reproducible in isolation
 - **Flaky** — intermittent failure, same test passes on retry
 
-**Root cause hypothesis:** Based on the error message and pattern, what's most likely causing this?
+**Root cause hypothesis:** State the evidence. For API/Perf failures: cite the schema finding (e.g. "schema defines `GET /users/{id}` but test calls `POST /users` — method mismatch → test bug").
 
-## Step 3 — Produce triage report
+## Step 4 — Requirements coverage check
+
+If `requirements.docsPath` was set and the doc was read in Step 1, compare the requirements against the test artifacts:
+
+```bash
+cat api-test-plan.md 2>/dev/null
+cat qa-plan.md 2>/dev/null
+cat ./load-tests/dq-nbomber.yaml 2>/dev/null
+```
+
+For each requirement or feature listed in the requirements doc, classify as:
+- **Covered** — at least one test in any artifact explicitly exercises this requirement
+- **Partially covered** — some scenarios tested but not all acceptance criteria
+- **Not covered** — no test exists for this requirement
+
+This section surfaces what was never tested, not just what failed.
+
+If `requirements.docsPath` is null or missing, skip this step and note "Requirements coverage: skipped — no docsPath configured" in the report summary.
+
+## Step 5 — Produce triage report
 
 Write triage findings as a structured Markdown table to `qa-triage-<date>.md`:
 
@@ -57,32 +152,46 @@ Write triage findings as a structured Markdown table to `qa-triage-<date>.md`:
 ## Summary
 - Total failures: <N>
 - P0: <N> | P1: <N> | P2: <N> | P3: <N>
-- Product bugs: <N> | Test bugs: <N> | Env issues: <N> | Flaky: <N>
+- Product bugs: <N> | Test bugs: <N> | Test generation bugs: <N> | Env issues: <N> | Flaky: <N>
+- Schema cross-reference: <performed / skipped — no schema configured>
+- Requirements coverage: <performed / skipped — no docsPath configured>
 
 ## P0 — Blocking (ship-stoppers)
 
-| Failure | Domain | Type | Root cause hypothesis | Recommended owner | Next action |
-|---------|--------|------|-----------------------|-------------------|-------------|
-| <failure description> | <domain> | <type> | <hypothesis> | <Dev/QA/DevOps> | <action> |
+| Failure | Domain | Type | Schema evidence | Root cause hypothesis | Recommended owner | Next action |
+|---------|--------|------|-----------------|-----------------------|-------------------|-------------|
+| <failure description> | <domain> | <type> | <schema finding or N/A> | <hypothesis> | <Dev/QA/DevOps> | <action> |
 
 ## P1 — Critical
 
-| Failure | Domain | Type | Root cause hypothesis | Recommended owner | Next action |
-|---------|--------|------|-----------------------|-------------------|-------------|
+| Failure | Domain | Type | Schema evidence | Root cause hypothesis | Recommended owner | Next action |
+|---------|--------|------|-----------------|-----------------------|-------------------|-------------|
 
 ## P2 — Major
 
-| Failure | Domain | Type | Root cause hypothesis | Recommended owner | Next action |
-|---------|--------|------|-----------------------|-------------------|-------------|
+| Failure | Domain | Type | Schema evidence | Root cause hypothesis | Recommended owner | Next action |
+|---------|--------|------|-----------------|-----------------------|-------------------|-------------|
 
 ## P3 — Minor
 
-| Failure | Domain | Type | Root cause hypothesis | Recommended owner | Next action |
-|---------|--------|------|-----------------------|-------------------|-------------|
+| Failure | Domain | Type | Schema evidence | Root cause hypothesis | Recommended owner | Next action |
+|---------|--------|------|-----------------|-----------------------|-------------------|-------------|
+
+## Requirements coverage
+
+_(Only present if requirements.docsPath was configured)_
+
+| Requirement | Coverage | Notes |
+|-------------|----------|-------|
+| <requirement text> | Covered / Partial / Not covered | <which test covers it, or why it's missing> |
+
+### Coverage summary
+- Covered: <N> | Partial: <N> | Not covered: <N>
+- ⚠️ Untested requirements: <list any "Not covered" items>
 
 ## Business risk statement
 
-<Overall assessment: can we ship? What are the risks of shipping with current failures?>
+<Overall assessment: can we ship? Include untested requirements as risk factors alongside failures.>
 ```
 
 ## Closing
@@ -94,10 +203,12 @@ Write triage findings as a structured Markdown table to `qa-triage-<date>.md`:
 > - <N> blocking issues (P0) — must fix before shipping
 > - <N> critical issues (P1) — fix or accept risk
 > - <N> lower-priority issues — track for next cycle
+> - <N> untested requirements — hidden risk
 >
 > **Top priority:** <most critical issue and recommended immediate action>
 >
 > **Recommended next steps:**
 > - P0 issues: escalate to dev team immediately
-> - Test bugs: run `/qa-codegen` to fix the failing tests
+> - Test bugs / test generation bugs: run `/qa-codegen` to fix the failing tests
+> - Untested requirements: add coverage before next release
 > - Run `/qa-report` to include triage results in the stakeholder summary

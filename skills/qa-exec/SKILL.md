@@ -77,8 +77,9 @@ Tell the user:
 Follow the test-execution skill pattern:
 
 1. Read `api-test-plan.md` — parse all sections (each `##` header = one endpoint test group)
-2. Create a unique session: `test-execution-api-<timestamp>`
-3. For each section:
+2. **Scope check:** Read `qa-plan.md` API section and `requirements.docsPath` (from config) for any in-scope endpoint list. If a scope restriction is present, note which sections will be skipped. If no scope restriction is found, execute all sections. This is a safety guard — `qa-api` should have already filtered the plan, but execute only what is in scope.
+3. Create a unique session: `test-execution-api-<timestamp>`
+4. For each in-scope section:
    - Extract the HTTP method, endpoint, expected status, request body, and headers
    - Execute via `api_request`:
      ```javascript
@@ -93,7 +94,7 @@ Follow the test-execution skill pattern:
      })
      ```
    - Chain extracted variables (tokens, IDs) into subsequent requests using `{{variableName}}`
-4. After all sections, generate the HTML report:
+5. After all in-scope sections, generate the HTML report:
    ```javascript
    await tools.api_session_report({
      sessionId: sessionId,

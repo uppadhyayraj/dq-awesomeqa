@@ -19,9 +19,10 @@ Output this checklist at the start, then output the updated list (with items che
 ```
 **qa-api — progress**
 - [ ] Check required tools (MCP server)
-- [ ] Read config
-- [ ] Read qa-plan.md for test scope
+- [ ] Read config + requirements doc
+- [ ] Derive in-scope endpoint list
 - [ ] Run api_planner → api-test-plan.md
+- [ ] Enforce scope — remove out-of-scope sections
 - [ ] Summarize plan findings
 ```
 
@@ -61,20 +62,40 @@ ls <requirements.docsPath> && cat <requirements.docsPath>/*.md 2>/dev/null
 If `domains.api.enabled` is false:
 > "API testing is disabled in `dq-qa.config.json`. Run `/qa-onboard` and enable the API domain."
 
-## Step 1 — Read qa-plan.md for test scope
+## Step 1 — Read qa-plan.md and derive in-scope endpoint list
 
 ```bash
 cat qa-plan.md 2>/dev/null
 ```
 
-Extract from the "API" section: which test categories are in scope.
+**Extract test categories** from the "API" section (functional / security / error-handling / edge-cases). If `qa-plan.md` does not exist or has no API section, use all categories: `["functional", "security", "error-handling", "edge-cases"]`.
 
-If `qa-plan.md` does not exist or has no API section, use all categories: `["functional", "security", "error-handling", "edge-cases"]`.
+**Derive the in-scope endpoint list** by combining two sources:
 
-## Step 2 — Run api_planner
+1. **Requirements doc** (read in Step 0) — list every feature, flow, or capability described. Translate each into the specific HTTP endpoint(s) it exercises (path + method). For example, "user registration" → `POST /auth/register`; "product search" → `GET /products`.
+
+2. **qa-plan.md API section** — any flows or endpoint groups explicitly listed there.
+
+After combining both sources, write out the derived list before proceeding:
+
+```
+In-scope endpoints:
+- POST /auth/login
+- GET /products
+- POST /orders
+(etc.)
+```
+
+**If neither source specifies particular endpoints:** use the full schema (no filter). State this explicitly:
+> "No endpoint scope found in requirements or qa-plan — all schema endpoints will be tested."
+
+**If scope is derived:** state it:
+> "Scope restricted to <N> endpoints from requirements / qa-plan."
+
+## Step 2 — Run api_planner and enforce scope
 
 Tell the user:
-> "Analyzing your API schema to generate a comprehensive test plan. Categories in scope: <categories>."
+> "Generating test plan. Scope: <derived endpoint list or 'all endpoints'>. Categories: <categories>."
 
 ```javascript
 await tools.api_planner({
@@ -85,14 +106,22 @@ await tools.api_planner({
   includeSecurity: true,
   includeErrorHandling: true,
   outputPath: "./api-test-plan.md",
-  testCategories: <categories from qa-plan.md or all four>,
+  testCategories: <categories from Step 1>,
+  endpoints: <derived in-scope endpoint list, or omit if no scope restriction>,
   validateEndpoints: false
 })
 ```
 
-After the tool returns, summarize:
-- How many endpoints were discovered
-- How many test scenarios were generated
+**Scope enforcement (always run when a scope was derived):**
+
+After `api_planner` writes `api-test-plan.md`, read the file and remove any `##` section whose endpoint path + HTTP method is NOT in the derived in-scope list. Rewrite the file retaining only in-scope sections.
+
+This step is mandatory when a scope was derived — `api_planner` may still generate tests for every endpoint it finds in the schema even if `endpoints` is passed. The rewrite is the authoritative filter.
+
+After the tool returns and scope is enforced, summarize:
+- How many endpoints were in the full schema
+- How many are in scope (after filtering)
+- How many test scenarios remain in `api-test-plan.md`
 - Key authentication flows identified
 - Any schema warnings
 
@@ -100,8 +129,9 @@ After the tool returns, summarize:
 
 > **Test plan saved to `api-test-plan.md`.**
 >
-> - Endpoints discovered: <N>
-> - Test scenarios: <N>
+> - Schema endpoints discovered: <N total>
+> - In-scope endpoints: <N after requirements/qa-plan filter, or "all">
+> - Test scenarios in plan: <N>
 > - Categories covered: <list>
 >
 > Run `/qa-exec` to execute the API tests.
