@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "democratize-quality": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["@democratize-quality/mcp-server"],
+      "env": {
+        "OUTPUT_DIR": "./qa-reports"
+      }
+    }
+  }
+}
