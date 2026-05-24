@@ -1,39 +1,100 @@
 # dq-awesomeqa
 
-A Claude Code plugin that guides QA engineers through the full testing lifecycle — UI, API, Accessibility, and Performance — with the expertise of a senior QA consultant.
+A Claude Code plugin that guides QA engineers through the full Software Testing Life Cycle — UI, API, Accessibility, and Performance — with the expertise of a senior QA consultant.
 
-## Prerequisites
+## Getting started
 
-Run `qa-setup` once per machine before using any other skill.
+Run `/qa-init` to begin. It walks you through every phase of the STLC in order, enforces phase gates, lets you choose which domains to cover, and won't let you skip steps that would leave gaps.
 
-## Skills
+If you prefer to work domain by domain, see the individual skills below.
+
+## The STLC Journey
+
+```
+/qa-init
+  │
+  ├─ Phase 1 — Setup
+  │     /qa-setup    → install tools (once per machine)
+  │     /qa-onboard  → configure project (once per project)
+  │
+  ├─ Phase 2 — Planning
+  │     /qa-impact   → update plan when requirements change
+  │     /qa-plan     → define test strategy + domain scope for this cycle
+  │
+  ├─ Phase 3 — Design  (only domains in scope)
+  │     /qa-api      → API test plan
+  │     /qa-ui       → UI interaction script
+  │     /qa-a11y     → Accessibility audit (runs after /qa-ui)
+  │     /qa-perf     → Load test config
+  │     /qa-coverage → Design gap check (are all planned areas designed?)
+  │
+  ├─ Phase 4 — Execution
+  │     /qa-exec     → run all in-scope domain tests
+  │
+  └─ Phase 5 — Closure
+        /qa-triage   → categorize failures, ship/no-ship verdict (if failures)
+        /qa-coverage → release readiness gate (is it safe to ship?)
+        /qa-report   → consolidated QA summary
+```
+
+**Two feedback loops are built into the journey:**
+- Failures after execution → `/qa-triage` → fix → re-execute
+- Requirements change between cycles → `/qa-impact` → updated plan → re-design
+
+## Skills reference
+
+### Entry point
+
+| Skill | When to use |
+|-------|------------|
+| `/qa-init` | Start here — guided STLC journey with phase gates and domain scope selection |
+
+### Setup (run once)
 
 | Skill | When to use |
 |-------|------------|
 | `/qa-setup` | Once per machine — installs CLIs and registers MCP server |
 | `/qa-onboard` | Once per project — collects URLs, schema, a11y level, perf thresholds |
-| `/qa-plan` | Per release — creates unified QA strategy across all domains |
-| `/qa-impact` | When requirements change — adjusts the existing plan |
-| `/qa-ui` | Run Playwright E2E + visual tests, generate HTML reports |
-| `/qa-api` | Plan → generate → heal API tests via DQ MCP server |
-| `/qa-a11y` | WCAG accessibility audit via accessibility-cli |
-| `/qa-perf` | Load test scenario generation + analysis via nbomber-cli |
-| `/qa-triage` | Categorize failures by severity, domain, and root cause |
-| `/qa-coverage` | Find coverage gaps across all domains |
-| `/qa-codegen` | Generate test code using the right tool per domain |
-| `/qa-report` | Unified QA summary linking all domain reports |
 
-## Lifecycle Flow
+### Planning
 
-```
-qa-setup → qa-onboard → qa-plan → [qa-ui | qa-api | qa-a11y | qa-perf]
-                                         ↓
-                              qa-triage / qa-coverage
-                                         ↓
-                                    qa-codegen
-                                         ↓
-                                    qa-report
-```
+| Skill | When to use |
+|-------|------------|
+| `/qa-plan` | Per cycle — defines test strategy and domain scope; writes `qa-plan.md` |
+| `/qa-impact` | When requirements change — diffs new requirements against `qa-plan.md`, updates the plan |
+
+### Design (one per domain)
+
+| Skill | When to use |
+|-------|------------|
+| `/qa-api` | Build the API test plan from schema — executed by `/qa-exec` via MCP |
+| `/qa-ui` | Explore the live app and build the UI interaction YAML |
+| `/qa-a11y` | Add WCAG accessibility scan steps to `ui-test.yaml`, or build a standalone audit |
+| `/qa-perf` | Generate load test config from schema via dq-nbomber |
+
+### Execution
+
+| Skill | When to use |
+|-------|------------|
+| `/qa-exec` | Execute all in-scope domain tests in recommended order (API → UI+A11y → Perf) |
+
+### Closure
+
+| Skill | When to use |
+|-------|------------|
+| `/qa-triage` | After failures — categorize by severity, cross-reference schema, issue ship verdict |
+| `/qa-coverage` | After design (gap check) or before release (readiness gate) |
+| `/qa-report` | Consolidate all domain results into `qa-summary.md` |
+
+### Advanced
+
+| Skill | When to use |
+|-------|------------|
+| `/qa-codegen` | Generate runnable test code (framework files or C# NBomber program) — not part of the main STLC path |
+
+## Domain scope
+
+You don't have to run all domains in every cycle. `/qa-init` (and `/qa-plan`) ask which domains to include at the start of each cycle. A single-domain run (e.g. API only, or Performance only) is a first-class path.
 
 ## Phase 2 (coming)
 
