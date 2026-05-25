@@ -52,13 +52,16 @@ Extract:
 - `domains.api.reportDir` → `reportDir`
 - `requirements.docsPath`
 
-If `requirements.docsPath` is set, read the requirements doc now — use it as context for what endpoints and behaviours to test:
+**Versioning convention — reading:** When reading `requirements/api.md`, `requirements/shared.md`, or `qa-plan.md`, extract only the content under the FIRST `## [YYYY-MM-DD]` heading, down to the next `---` separator or the next `## [YYYY-MM-DD]` heading. Ignore everything below.
+
+Read the CURRENT SECTION ONLY of the API requirements file:
 
 ```bash
-cat <requirements.docsPath> 2>/dev/null
-# or if it's a directory:
-ls <requirements.docsPath> && cat <requirements.docsPath>/*.md 2>/dev/null
+cat requirements/api.md 2>/dev/null
+cat requirements/shared.md 2>/dev/null
 ```
+
+Use `requirements/api.md` as the authoritative source for: critical endpoints, error cases, auth mechanism, rate limits, and out-of-scope areas. Use `requirements/shared.md` for: auth credentials, test data, and environment details.
 
 If `domains.api.enabled` is false:
 > "API testing is disabled in `dq-qa.config.json`. Run `/qa-onboard` and enable the API domain."

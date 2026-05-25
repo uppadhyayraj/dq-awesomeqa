@@ -78,12 +78,17 @@ From the shared output, extract:
 - Error types and counts
 - Threshold pass/fail
 
+**Versioning convention — reading:** When reading `qa-plan.md`, `qa-triage.md`, or `qa-coverage.md`, extract only the content under the FIRST `## [YYYY-MM-DD]` heading, down to the next `---` separator or the next `## [YYYY-MM-DD]` heading. Ignore everything below.
+**Versioning convention — writing:** `qa-summary.md` uses dated sections. If the file exists, prepend a new dated section. See `docs/templates/qa-summary.md` for the full structure.
+
 ## Step 2 — Read triage and coverage (if available)
 
 ```bash
-ls qa-triage-*.md 2>/dev/null | tail -1 | xargs cat 2>/dev/null
-ls qa-coverage-*.md 2>/dev/null | tail -1 | xargs cat 2>/dev/null
+cat qa-triage.md 2>/dev/null
+cat qa-coverage.md 2>/dev/null
 ```
+
+Read only the FIRST dated section from each file.
 
 ## Step 3 — Determine overall status
 
@@ -93,7 +98,8 @@ ls qa-coverage-*.md 2>/dev/null | tail -1 | xargs cat 2>/dev/null
 
 ## Step 4 — Write qa-summary.md
 
-Write `qa-summary.md` to the project root:
+Write `qa-summary.md` using the versioned template at `docs/templates/qa-summary.md`.
+If `qa-summary.md` already exists, prepend a new dated section — do NOT overwrite.
 
 ```markdown
 # QA Summary — <project name>

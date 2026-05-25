@@ -18,8 +18,9 @@ If you prefer to work domain by domain, see the individual skills below.
   │     /qa-onboard  → configure project (once per project)
   │
   ├─ Phase 2 — Planning
-  │     /qa-impact   → update plan when requirements change
-  │     /qa-plan     → define test strategy + domain scope for this cycle
+  │     /qa-requirement → gather requirements (first cycle) → requirements/ folder
+  │     /qa-impact      → record what changed (subsequent cycles)
+  │     /qa-plan        → derive test strategy from requirements/ → qa-plan.md
   │
   ├─ Phase 3 — Design  (only domains in scope)
   │     /qa-api      → API test plan
@@ -60,8 +61,9 @@ If you prefer to work domain by domain, see the individual skills below.
 
 | Skill | When to use |
 |-------|------------|
-| `/qa-plan` | Per cycle — defines test strategy and domain scope; writes `qa-plan.md` |
-| `/qa-impact` | When requirements change — diffs new requirements against `qa-plan.md`, updates the plan |
+| `/qa-requirement` | First cycle — gathers requirements via Jira, paste, or guided questions; writes `requirements/` folder |
+| `/qa-plan` | Per cycle — derives test strategy from `requirements/`; writes `qa-plan.md` |
+| `/qa-impact` | Subsequent cycles — records changed requirements, updates `requirements/` + `qa-plan.md`, flags domain re-runs |
 
 ### Design (one per domain)
 

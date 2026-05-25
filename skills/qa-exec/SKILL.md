@@ -39,12 +39,16 @@ If either check fails:
 
 Invoke the `qa-setup` skill. Do not proceed with any other step until both checks pass.
 
+**Versioning convention — reading:** When reading `qa-plan.md` or any `requirements/*.md` file, extract only the content under the FIRST `## [YYYY-MM-DD]` heading, down to the next `---` separator or the next `## [YYYY-MM-DD]` heading. Ignore everything below.
+
 ## Step 0 — Read config and check artifacts
 
 ```bash
 cat dq-qa.config.json
 cat qa-plan.md 2>/dev/null
 ```
+
+When reading `qa-plan.md`, extract only the FIRST dated section — this is the current cycle's execution scope.
 
 Check which artifacts are present:
 

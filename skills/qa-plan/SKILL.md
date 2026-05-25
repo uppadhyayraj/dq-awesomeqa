@@ -12,6 +12,11 @@ You are a senior QA consultant orchestrating test planning. Collect the right re
 
 **Do not improvise.** Only use tools listed in `allowed-tools` (`ls`, `Read`, `Write`). Never run scripts, make HTTP requests, or execute any command not explicitly specified in these instructions. Never modify application source files. If a situation is not covered by these instructions, stop and ask the user.
 
+**Versioning convention:** `qa-plan.md` uses dated sections.
+- **Reading:** extract only the content under the FIRST `## [YYYY-MM-DD]` heading. Ignore everything below the next `---` separator or the next `## [YYYY-MM-DD]` heading.
+- **Writing (new plan):** write the full versioned file using the template at `docs/templates/qa-plan.md`.
+- **Writing (update):** prepend a new dated section at the top; leave existing sections untouched.
+
 ## Progress checklist
 
 Output this checklist at the start, then output the updated list (with items checked off) after each step completes:
@@ -19,58 +24,62 @@ Output this checklist at the start, then output the updated list (with items che
 ```
 **qa-plan — progress**
 - [ ] Read config
+- [ ] Read requirements files (current sections)
 - [ ] Warn if app must be running (UI / A11y)
-- [ ] Collect domain requirements
+- [ ] Confirm scope with user
 - [ ] Ask: parallel subagents or manual?
 - [ ] Run domain planning
 - [ ] Write qa-plan.md
 ```
 
-## Step 0 — Read config
+## Step 0 — Read config and requirements
 
 ```bash
 cat dq-qa.config.json
 ```
 
-Identify which domains are enabled:
-- `domains.api.enabled`
-- `domains.ui.enabled`
-- `domains.accessibility.enabled`
-- `domains.performance.enabled`
+Identify which domains are enabled. If config not found: invoke qa-onboard first.
 
-If config not found: invoke qa-onboard first.
+Read the CURRENT SECTION ONLY of each requirement file that exists:
+
+```bash
+cat requirements/shared.md 2>/dev/null
+cat requirements/api.md 2>/dev/null
+cat requirements/ui.md 2>/dev/null
+cat requirements/a11y.md 2>/dev/null
+cat requirements/perf.md 2>/dev/null
+```
+
+For each file, extract only content from the FIRST `## [YYYY-MM-DD]` heading down to the next `---` separator. This is the authoritative scope for planning.
+
+If `requirements/shared.md` is missing:
+> "No requirements files found. Run `/qa-requirement` first — it gathers the cycle requirements that `/qa-plan` uses to produce a traceable test strategy."
+
+Stop if requirements are missing.
 
 ## Step 1 — Warn if app must be running
 
 If `domains.ui.enabled` or `domains.accessibility.enabled` is true:
 > "⚠️ **UI and Accessibility planning require the app to be running in a browser** — I'll explore the live app to discover real selectors and page flows. Please make sure `<actual baseUrl from config>` is reachable before we start those domains."
 
-## Step 2 — Collect requirements (one domain at a time)
+## Step 2 — Confirm scope
 
-**If UI or Accessibility enabled:**
-> "For **UI / Accessibility** testing — what user flows should I cover? Please list the 3–5 most critical paths (e.g. 'login → dashboard → create order → checkout'). I'll use these to build the interaction script."
+Summarise what was found in the requirements files and confirm with the user:
 
-Wait for response before continuing to next domain.
-
-**If API enabled:**
-> "For **API** testing — which test categories should I include?
-> - functional (happy paths for each endpoint)
-> - security (auth, injection, permissions)
-> - error-handling (4xx/5xx responses)
-> - edge-cases (boundary values, empty inputs)
+> "Based on `requirements/`, here is the planned scope for this cycle:
 >
-> Select all that apply, or say 'all'."
+> - **API:** [endpoints / categories from requirements/api.md]
+> - **UI:** [flows from requirements/ui.md]
+> - **A11y:** [pages/level from requirements/a11y.md]
+> - **Perf:** [load profile from requirements/perf.md]
+>
+> Does this look right, or should I adjust the scope?"
 
-Wait for response.
-
-**If Performance enabled:**
-> "For **Performance** testing — two questions:
-> 1. What load profile should I use? (e.g. '10 req/s for 60s', or 'ramp from 5 to 50 req/s over 2 min')
-> 2. Which flows should I load test? (e.g. 'login flow and product search')"
-
-Wait for response.
+Wait for confirmation before continuing.
 
 ## Step 3 — Ask how to run domain planning
+
+Pass the confirmed scope (extracted from requirements files) as context to each domain skill so they do not re-ask questions that are already in requirements.
 
 > "I'm ready to create test artifacts for each domain. I can:
 >
@@ -108,60 +117,78 @@ Wait for the user to confirm all domain artifacts are ready before continuing.
 
 ## Step 4 — Write qa-plan.md
 
-Write `qa-plan.md` to the project root:
+Write `qa-plan.md` using the structure below. Replace all `[PLACEHOLDER]` tokens with real values derived from the requirements files and config. Use today's date as `[DATE]`.
 
 ```markdown
-# QA Plan — <project name>
+# QA Plan — [PROJECT_NAME]
 
-**Created:** <date>
-**Domains covered:** <list enabled domains>
-
----
-
-## Flows covered per domain
-
-### UI / Accessibility (if enabled)
-<List the user flows from Step 2>
-
-### API (if enabled)
-- Categories: <categories selected in Step 2>
-- Schema: <domains.api.schemaUrl or schemaPath>
-
-### Performance (if enabled)
-- Load profile: <profile from Step 2>
-- Flows under test: <flows from Step 2>
+<!-- VERSION HISTORY — newest row at top -->
+| Date | Cycle | Summary |
+|------|-------|---------|
+| [DATE] | [CYCLE] | Initial creation |
 
 ---
+<!-- CURRENT — skills read only the first dated section below this line -->
 
-## Entry / Exit criteria
+## [DATE] — [CYCLE] — [DESCRIPTION]
 
-| Domain | Entry criteria | Exit criteria |
-|--------|---------------|--------------|
-| UI | App running at `<baseUrl>`; `ui-test.yaml` saved | All flows pass; 0 selector failures |
-| Accessibility | `ui-test.yaml` has scan steps | 0 critical/serious violations at `<domains.accessibility.level>` |
-| API | API reachable; `api-test-plan.md` saved | All selected categories pass |
-| Performance | `dq-nbomber.yaml` validated; real credentials in `users.csv` | p99 < `<p99LatencyMs>`ms; ok% > `<okRequestPercent>`% |
+**Requirements source:** `requirements/`
+**Domains in scope:** [API / UI / Accessibility / Performance]
+
+### Risk Assessment
+| Area | Risk | Rationale |
+|------|------|-----------|
+| [area] | High / Medium / Low | [why risky] |
+
+### API Plan
+- In-scope endpoints: [list or 'see requirements/api.md']
+- Test categories: [functional / security / error-handling / edge-cases]
+- Entry criteria: API reachable; MCP server registered
+- Exit criteria: all categories pass; 0 contract violations
+- Artifact: `api-test-plan.md`
+
+### UI Plan
+- Flows: [list from requirements/ui.md]
+- Entry criteria: app running at `[baseUrl]`
+- Exit criteria: all flows pass; 0 selector failures
+- Artifact: `ui-test.yaml`
+
+### Accessibility Plan
+- Pages/flows: [list from requirements/a11y.md]
+- WCAG level: [A / AA / AAA] | Jurisdiction: [jurisdiction]
+- Entry criteria: `ui-test.yaml` present (primary mode) or standalone
+- Exit criteria: 0 critical/serious violations
+- Artifact: updated `ui-test.yaml` or `qa-reports/a11y/audit.yaml`
+
+### Performance Plan
+- Endpoints under test: [list from requirements/perf.md]
+- Load profile: [from requirements/perf.md]
+- Entry criteria: non-production environment confirmed; `dq-nbomber.yaml` validated
+- Exit criteria: p99 ≤ [ms]ms; ok% ≥ [%]%
+- Artifact: `./load-tests/dq-nbomber.yaml`
+
+### Execution Order
+1. API — no browser required; fastest feedback
+2. UI + Accessibility — browser-based; run together
+3. Performance — last; requires human approval and non-prod env
+
+### Open Risks
+| Risk | Mitigation | Owner |
+|------|-----------|-------|
+| [risk] | [mitigation] | [owner] |
 
 ---
-
-## Recommended execution order
-
-1. **API** — no browser required; fastest feedback on core logic
-2. **UI + Accessibility** — browser-based; run together via `qa-exec`
-3. **Performance** — last; load tests generate real traffic and require human approval
-
----
-
-## Artifact links
-
-Only include rows for enabled domains.
-
-| Domain | Artifact |
-|--------|---------|
-| UI + Accessibility | `ui-test.yaml` |
-| API | `api-test-plan.md` |
-| Performance | `./load-tests/dq-nbomber.yaml` |
+<!-- HISTORY — skills ignore everything below this line -->
 ```
+
+If `qa-plan.md` already exists (update cycle): prepend a new dated section at the top following the versioning convention — do NOT overwrite the existing file.
+
+The plan must trace every domain section back to the corresponding requirement file:
+- API section → sourced from `requirements/api.md` current section
+- UI section → sourced from `requirements/ui.md` current section
+- A11y section → sourced from `requirements/a11y.md` current section
+- Perf section → sourced from `requirements/perf.md` current section
+- Exit criteria → sourced from `requirements/shared.md` current section
 
 ## Closing
 
@@ -174,5 +201,6 @@ Only include rows for enabled domains.
 | Situation | Response |
 |-----------|---------- |
 | No config found | Invoke qa-onboard first |
-| User asks for plan for a single domain | Produce a domain-specific section only |
+| requirements/ missing | Stop; direct user to run `/qa-requirement` first |
+| User asks for plan for a single domain | Produce a domain-specific section only; read only that domain's requirement file |
 | qa-exec not yet available | Run `/qa-ui`, `/qa-a11y`, `/qa-api`, and `/qa-perf` individually, then run `/qa-report` when done |

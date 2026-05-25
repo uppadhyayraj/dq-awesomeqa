@@ -54,10 +54,13 @@ Invoke the `qa-setup` skill. Do not proceed with any other step until `/qa-setup
 
 ## Step 0 — Read references and config
 
+Read the following files from this skill's `references/` directory. The skill's base directory is injected into your context as `Base directory for this skill: <path>` — use that absolute path to construct each file path:
+
+- `references/audit-flows.md`
+- `references/keyboard-testing.md`
+- `references/report-generation.md`
+
 ```bash
-cat skills/qa-ui/references/audit-flows.md
-cat skills/qa-ui/references/keyboard-testing.md
-cat skills/qa-ui/references/report-generation.md
 cat dq-qa.config.json
 ```
 
@@ -70,13 +73,16 @@ Extract from config:
 If `domains.ui.enabled` is false:
 > "UI testing is disabled in `dq-qa.config.json`. Run `/qa-onboard` and enable the UI domain."
 
-If `requirements.docsPath` is set, read the requirements doc now — use it as context for which flows to cover and what the app is supposed to do:
+**Versioning convention — reading:** When reading `requirements/ui.md`, `requirements/shared.md`, or `qa-plan.md`, extract only the content under the FIRST `## [YYYY-MM-DD]` heading, down to the next `---` separator or the next `## [YYYY-MM-DD]` heading. Ignore everything below.
+
+Read the CURRENT SECTION ONLY of the UI requirements file:
 
 ```bash
-cat <requirements.docsPath> 2>/dev/null
-# or if it's a directory:
-ls <requirements.docsPath> && cat <requirements.docsPath>/*.md 2>/dev/null
+cat requirements/ui.md 2>/dev/null
+cat requirements/shared.md 2>/dev/null
 ```
+
+Use `requirements/ui.md` as the authoritative source for: critical user journeys, browser/device scope, test accounts, feature flags, and known flaky areas. Use `requirements/shared.md` for: auth credentials, test data, and environment details.
 
 ## Step 1 — Read qa-plan.md for flows
 

@@ -92,9 +92,6 @@ If yes, ask:
 Then:
 > "What is your minimum acceptable successful request percentage? (e.g. 95 means 95% of requests must succeed). Standard target is 95%."
 
-### 6 — Requirements docs (optional)
-> "Do you have requirements or feature specification documents? If yes, I can use them to generate a more accurate QA plan. You can provide a folder path or skip this."
-
 ## Write `dq-qa.config.json`
 
 After collecting all answers, write the config file:
@@ -135,7 +132,7 @@ After collecting all answers, write the config file:
     }
   },
   "requirements": {
-    "docsPath": "<path or null>"
+    "docsPath": "./requirements"
   }
 }
 ```
@@ -153,5 +150,6 @@ After writing the file, provide:
 > | Accessibility | ✅ enabled / ❌ disabled | `<jurisdiction> <level>` |
 > | Performance | ✅ enabled / ❌ disabled | p99 < `<ms>`ms, ok > `<%>%` |
 >
-> **Recommended next step:** Run `/qa-plan` to create your QA strategy.
-> qa-plan reads this config and your requirements docs (if provided) to produce a risk-prioritized test plan covering all enabled domains.
+> **Recommended next steps:**
+> 1. Run `/qa-requirement` to gather test requirements for this cycle — it writes the `requirements/` folder that all planning and design skills read from.
+> 2. Run `/qa-plan` to produce the test strategy from those requirements.

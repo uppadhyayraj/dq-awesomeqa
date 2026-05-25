@@ -55,11 +55,14 @@ Invoke the `qa-setup` skill. Do not proceed with any other step until `/qa-setup
 
 ## Step 0 — Read references and config
 
+Read the following files from this skill's `references/` directory. The skill's base directory is injected into your context as `Base directory for this skill: <path>` — use that absolute path to construct each file path:
+
+- `references/config-schema.json`
+- `references/yaml-examples.yaml`
+- `references/cli-reference.md`
+- `references/data-review.instructions.md`
+
 ```bash
-cat skills/qa-perf/references/config-schema.json
-cat skills/qa-perf/references/yaml-examples.yaml
-cat skills/qa-perf/references/cli-reference.md
-cat skills/qa-perf/references/data-review.instructions.md
 cat dq-qa.config.json
 ```
 
@@ -70,13 +73,16 @@ Extract from config:
 - `domains.performance.schemaUrl` — note if set; use as a candidate path for the schema below
 - `requirements.docsPath`
 
-If `requirements.docsPath` is set, read the requirements doc now — use it as context for which flows to load test and what the expected behaviour is:
+**Versioning convention — reading:** When reading `requirements/perf.md`, `requirements/shared.md`, or `qa-plan.md`, extract only the content under the FIRST `## [YYYY-MM-DD]` heading, down to the next `---` separator or the next `## [YYYY-MM-DD]` heading. Ignore everything below.
+
+Read the CURRENT SECTION ONLY of the performance requirements file:
 
 ```bash
-cat <requirements.docsPath> 2>/dev/null
-# or if it's a directory:
-ls <requirements.docsPath> && cat <requirements.docsPath>/*.md 2>/dev/null
+cat requirements/perf.md 2>/dev/null
+cat requirements/shared.md 2>/dev/null
 ```
+
+Use `requirements/perf.md` as the authoritative source for: peak users, busy periods, thresholds, endpoints under test, and infrastructure details. When the user provides load parameters separately, use them to override the requirements file values.
 
 If `domains.performance.enabled` is false:
 > "Performance testing is disabled in `dq-qa.config.json`. Run `/qa-onboard` and enable the performance domain."

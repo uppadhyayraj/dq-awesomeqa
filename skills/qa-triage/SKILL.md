@@ -37,7 +37,10 @@ Accept failures in any form:
 If no failures are provided:
 > "Please share the test output or point me to the report files. You can paste the output directly, provide a file path, or tell me where the reports are stored."
 
-## Step 1 — Read config and requirements doc
+**Versioning convention — reading:** When reading `qa-plan.md` or any `requirements/*.md` file, extract only the content under the FIRST `## [YYYY-MM-DD]` heading, down to the next `---` separator or the next `## [YYYY-MM-DD]` heading. Ignore everything below.
+**Versioning convention — writing:** `qa-triage.md` uses dated sections. If the file exists, prepend a new dated section. See `docs/templates/qa-triage.md` for the full structure.
+
+## Step 1 — Read config and requirements
 
 ```bash
 cat dq-qa.config.json
@@ -48,17 +51,20 @@ This helps identify which domain the failures belong to.
 Extract:
 - `domains.api.schemaUrl` and/or `domains.api.schemaPath`
 - `domains.performance.schemaUrl`
-- `requirements.docsPath`
 
-If `requirements.docsPath` is set, read it now:
+Read the CURRENT SECTION ONLY of the requirements files:
 
 ```bash
-cat <requirements.docsPath> 2>/dev/null
-# or if it's a directory:
-ls <requirements.docsPath> && cat <requirements.docsPath>/*.md 2>/dev/null
+cat requirements/shared.md 2>/dev/null
+cat requirements/api.md 2>/dev/null
+cat requirements/ui.md 2>/dev/null
+cat requirements/a11y.md 2>/dev/null
+cat requirements/perf.md 2>/dev/null
 ```
 
-Keep the requirements content in context — it will be used in the coverage check (Step 4).
+From `requirements/shared.md` current section, extract **exit criteria** — this is the threshold used for the ship verdict.
+
+Keep all requirements content in context — it is used for coverage checking (Step 4) and for the ship verdict (Step 5).
 
 ## Step 2 — Load schema and test artifacts for relevant domains
 
@@ -125,7 +131,7 @@ For each failure, determine:
 
 ## Step 4 — Requirements coverage check
 
-If `requirements.docsPath` was set and the doc was read in Step 1, compare the requirements against the test artifacts:
+Compare the requirements (read in Step 1) against the test artifacts:
 
 ```bash
 cat api-test-plan.md 2>/dev/null
@@ -133,18 +139,23 @@ cat qa-plan.md 2>/dev/null
 cat ./load-tests/dq-nbomber.yaml 2>/dev/null
 ```
 
-For each requirement or feature listed in the requirements doc, classify as:
+When reading `qa-plan.md`, extract only the FIRST dated section.
+
+For each requirement in the domain requirement files (current sections), classify as:
 - **Covered** — at least one test in any artifact explicitly exercises this requirement
 - **Partially covered** — some scenarios tested but not all acceptance criteria
 - **Not covered** — no test exists for this requirement
 
 This section surfaces what was never tested, not just what failed.
 
-If `requirements.docsPath` is null or missing, skip this step and note "Requirements coverage: skipped — no docsPath configured" in the report summary.
+If no requirements files exist, skip this step and note "Requirements coverage: skipped — no requirements files found" in the report summary.
 
 ## Step 5 — Produce triage report
 
-Write triage findings as a structured Markdown table to `qa-triage-<date>.md`:
+Use the exit criteria extracted from `requirements/shared.md` to determine the ship verdict.
+
+Write triage findings to `qa-triage.md` using the versioned template at `docs/templates/qa-triage.md`.
+If `qa-triage.md` already exists, prepend a new dated section — do NOT overwrite.
 
 ```markdown
 # QA Triage Report — <date>

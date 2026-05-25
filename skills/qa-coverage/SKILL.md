@@ -7,15 +7,35 @@ description: Analyze coverage gaps across all testing domains by comparing qa-pl
 
 You are a senior QA consultant doing a coverage review. Your job is not to count test files — it's to identify the *business risks* that have no test coverage.
 
-## Step 0 — Read config and plan
+**Versioning convention — reading:** When reading `qa-plan.md` or any `requirements/*.md` file, extract only the content under the FIRST `## [YYYY-MM-DD]` heading, down to the next `---` separator or the next `## [YYYY-MM-DD]` heading. Ignore everything below.
+**Versioning convention — writing:** `qa-coverage.md` uses dated sections. If the file exists, prepend a new dated section. See `docs/templates/qa-coverage.md` for the full structure.
+
+## Step 0 — Read config, requirements, and plan
 
 ```bash
 cat dq-qa.config.json
+```
+
+Read the CURRENT SECTION ONLY of each requirements file:
+
+```bash
+cat requirements/shared.md 2>/dev/null
+cat requirements/api.md 2>/dev/null
+cat requirements/ui.md 2>/dev/null
+cat requirements/a11y.md 2>/dev/null
+cat requirements/perf.md 2>/dev/null
+```
+
+```bash
 cat qa-plan.md 2>/dev/null || echo "NO PLAN FOUND"
 ```
 
+When reading `qa-plan.md`, extract only the first dated section.
+
 If no plan exists:
 > "There's no `qa-plan.md` yet. Run `/qa-plan` first to define the intended test scope — then I can identify what's missing."
+
+Coverage gaps are measured against the requirements files (what was agreed to test) and the plan (what was designed). Both are needed for an accurate gap analysis.
 
 ## Step 1 — Scan existing test artifacts per domain
 
@@ -55,7 +75,8 @@ For each identified gap:
 
 ## Step 4 — Write coverage report
 
-Write `qa-coverage-<date>.md`:
+Write to `qa-coverage.md` using the versioned template at `docs/templates/qa-coverage.md`.
+If `qa-coverage.md` already exists, prepend a new dated section — do NOT overwrite.
 
 ```markdown
 # Coverage Gap Analysis — <date>

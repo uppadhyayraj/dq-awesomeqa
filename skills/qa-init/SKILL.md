@@ -32,7 +32,8 @@ Phase 1 — Setup
 - [ ] Project configured (/qa-onboard)
 
 Phase 2 — Planning
-- [ ] Requirements impact assessed (/qa-impact)   [if requirements changed]
+- [ ] Requirements gathered (/qa-requirement)      [first cycle]
+- [ ] Requirements updated (/qa-impact)            [subsequent cycles]
 - [ ] Test strategy and domain scope defined (/qa-plan)
 
 Phase 3 — Design
@@ -116,17 +117,33 @@ Output the Phase 2 checkpoint list:
 - [ ] Confirm scope from qa-plan.md
 ```
 
-### Step 2.1 — Requirements change check
+### Step 2.1 — Requirements file check
 
-> "Have requirements changed since your last test cycle?
-> - **Yes** → I'll run /qa-impact first to update the test strategy
-> - **No / First cycle** → Proceeding directly to /qa-plan"
+Read config to identify enabled domains, then check whether requirement files exist for each:
 
-If yes: Invoke the `qa-impact` skill. Wait for it to complete and update `qa-plan.md`. Mark `[x] Run /qa-impact`.
+```bash
+cat dq-qa.config.json
+```
 
-If no: Mark `[x] Run /qa-impact` as `[skipped — no change]`.
+```bash
+ls requirements/shared.md 2>/dev/null && echo "shared: EXISTS" || echo "shared: MISSING"
+ls requirements/api.md 2>/dev/null && echo "api: EXISTS" || echo "api: MISSING"
+ls requirements/ui.md 2>/dev/null && echo "ui: EXISTS" || echo "ui: MISSING"
+ls requirements/a11y.md 2>/dev/null && echo "a11y: EXISTS" || echo "a11y: MISSING"
+ls requirements/perf.md 2>/dev/null && echo "perf: EXISTS" || echo "perf: MISSING"
+```
 
-Mark `[x] Check whether requirements have changed`.
+**If any enabled domain file is MISSING (first cycle or partial setup):**
+> "Requirements files are missing for: [list missing domains]. Invoking /qa-requirement to gather them now."
+
+Invoke the `qa-requirement` skill. Wait for it to complete. Mark `[x] Requirements gathered (/qa-requirement)`.
+
+**If ALL enabled domain files EXIST (subsequent cycle):**
+> "Requirements files found for all enabled domains. Invoking /qa-impact to record what changed this cycle."
+
+Invoke the `qa-impact` skill. Wait for it to complete. Mark `[x] Requirements updated (/qa-impact)`.
+
+Mark `[x] Check requirement files`.
 
 ### Step 2.2 — Domain scope selection
 
@@ -360,7 +377,7 @@ Phase 1 — Setup
 - [x] Project configured (/qa-onboard)
 
 Phase 2 — Planning
-- [x] Requirements impact assessed (/qa-impact)
+- [x] Requirements gathered/updated (/qa-requirement or /qa-impact)
 - [x] Test strategy and domain scope defined (/qa-plan) — scope: <domains>
 
 Phase 3 — Design

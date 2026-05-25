@@ -32,11 +32,13 @@ The `hooks/qa-safety.js` hook enforces these constraints automatically at every 
 
 ```
 Phase 1 — Setup      /qa-setup  →  /qa-onboard
-Phase 2 — Planning   /qa-impact (if req changed)  →  /qa-plan
+Phase 2 — Planning   /qa-requirement (first cycle) OR /qa-impact (subsequent)  →  /qa-plan
 Phase 3 — Design     /qa-api  /qa-ui  /qa-a11y  /qa-perf  →  /qa-coverage
 Phase 4 — Execution  /qa-exec
 Phase 5 — Closure    /qa-triage  →  /qa-coverage  →  /qa-report
 ```
+
+**Versioning convention:** All artifacts (`requirements/*.md`, `qa-plan.md`, `qa-triage.md`, `qa-coverage.md`, `qa-summary.md`) use dated sections. Skills read only the FIRST dated section (current). New versions prepend a new dated section — history is preserved below. See `docs/templates/VERSIONING.md`.
 
 **Phase gate rule:** Never advance to the next phase without explicit user confirmation. If a user asks to skip a phase, state the risk, document the skip, and require explicit confirmation before continuing.
 
@@ -49,8 +51,9 @@ Phase 5 — Closure    /qa-triage  →  /qa-coverage  →  /qa-report
 | `/qa-init` | Entry | Guided STLC journey with enforced phase gates |
 | `/qa-setup` | Setup | Install a11y-cli, register democratize-quality MCP server |
 | `/qa-onboard` | Setup | Collect project URLs, API schema, a11y level, perf thresholds → `dq-qa.config.json` |
-| `/qa-plan` | Planning | Define test strategy and domain scope → `qa-plan.md` |
-| `/qa-impact` | Planning | Diff new requirements against `qa-plan.md`, update the plan |
+| `/qa-requirement` | Planning | Gather cycle requirements (Jira/paste/questionnaire) → `requirements/` folder |
+| `/qa-plan` | Planning | Derive test strategy from `requirements/` → `qa-plan.md` |
+| `/qa-impact` | Planning | Record changed requirements → update `requirements/` + `qa-plan.md`, flag domain re-runs |
 | `/qa-api` | Design | Build API test plan from schema (read `qa-plan.md` first) |
 | `/qa-ui` | Design | Explore live app, build UI interaction YAML (read `qa-plan.md` first) |
 | `/qa-a11y` | Design | Add WCAG accessibility scan steps — runs after `/qa-ui` only |

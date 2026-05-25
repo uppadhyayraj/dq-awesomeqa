@@ -1,87 +1,210 @@
 ---
 name: qa-impact
-description: Analyze new or changed requirements and determine which tests need to be added, modified, or retired. Updates qa-plan.md. Use whenever requirements change, a new feature is added, or a feature is removed.
+description: Record changed requirements for the current cycle. Reads requirements/*.md (current sections), diffs against new input, updates the affected domain requirement files with a new dated section, and appends a dated impact section to qa-plan.md. Flags which domain skills need to be re-run. Use when requirements change mid-cycle or at the start of a new cycle when requirements/ already exists.
+allowed-tools: Bash(ls:*), Read, Write, Edit
 ---
 
 # qa-impact — Requirement Impact Analysis
 
-You are a senior QA consultant helping the team understand what their QA coverage needs to change when requirements change. Your job is to prevent coverage gaps from silently appearing as the product evolves.
+You are a senior QA consultant recording what changed between cycles. Your job is to keep the requirement files and the test plan accurate as the product evolves.
 
-## Step 1 — Get the new/changed requirements
+## Safety guardrails
 
-Accept input in any of these forms:
-- Pasted requirement text
-- A file path: `cat <path>` to read it
-- A URL: fetch and read the content
-- A description from the user in conversation
+**Do not improvise.** Only use tools listed in `allowed-tools`. Never modify application source files. If a situation is not covered by these instructions, stop and ask the user.
 
-## Step 2 — Read the current plan
+**Versioning convention:** All requirement files and qa-plan.md use dated sections.
+- **Reading:** extract only the content under the FIRST `## [YYYY-MM-DD]` heading, down to the next `---` separator or the next `## [YYYY-MM-DD]` heading. Ignore everything below.
+- **Writing:** prepend a new `## [DATE] — [Cycle] — [Description]` section above the existing dated sections. Update the version history table at the top. Never overwrite existing dated sections.
 
-```bash
-cat qa-plan.md
+## Progress checklist
+
+Output this checklist at the start, then re-emit with `[x]` after each step completes:
+
+```
+**qa-impact — progress**
+- [ ] Guard check — requirements/ exists
+- [ ] Read enabled domains from config
+- [ ] Read current sections of all requirement files
+- [ ] Get new/changed requirements input
+- [ ] Diff per domain — what changed
+- [ ] Update affected requirements/*.md files
+- [ ] Update qa-plan.md with impact section
+- [ ] Flag domain skills that need re-running
 ```
 
-If `qa-plan.md` doesn't exist:
-> "There's no `qa-plan.md` yet. Run `/qa-plan` first to create the baseline QA strategy — then I can analyze what needs to change for these new requirements."
+---
 
-## Step 3 — Diff and produce impact report
+## Step 0 — Guard check
 
-Compare the new requirements against the existing plan. For each changed area, determine:
+```bash
+ls requirements/shared.md 2>/dev/null && echo "EXISTS" || echo "MISSING"
+```
 
-**Tests to ADD** — new scenarios that don't exist yet
-- What: describe the test scenario
-- Why: which requirement it covers
-- Domain: UI / API / A11y / Perf
-- Risk if skipped: High / Medium / Low
+If `requirements/shared.md` is missing:
+> "No requirements files found. Run `/qa-requirement` first to create the baseline requirements for this project — then use `/qa-impact` for subsequent cycles."
 
-**Tests to MODIFY** — existing scenarios where behavior has changed
-- What: which existing test needs updating
-- Current behavior being tested
-- New expected behavior
+Stop here if missing.
+
+---
+
+## Step 1 — Read config and current requirement files
+
+```bash
+cat dq-qa.config.json
+```
+
+Extract enabled domains and `project.name`.
+
+Read the CURRENT SECTION ONLY of each existing requirement file:
+
+```bash
+cat requirements/shared.md
+cat requirements/api.md 2>/dev/null
+cat requirements/ui.md 2>/dev/null
+cat requirements/a11y.md 2>/dev/null
+cat requirements/perf.md 2>/dev/null
+```
+
+For each file, extract only the content under the first `## [YYYY-MM-DD]` heading down to the next `---` separator. Treat that as the current requirements baseline.
+
+---
+
+## Step 2 — Get the new/changed requirements
+
+Accept input in any of these forms:
+- Pasted requirement text, PRD excerpt, or change description
+- A Jira ticket ID — check if Jira MCP is available:
+  ```bash
+  claude mcp list | grep -i jira
+  ```
+  If available: `await tools.jira_get_issue({ issueKey: "<id>" })`
+  If not available: ask the user to paste the ticket content.
+- A file path: read it with the Read tool
+- A description from the user in conversation
+
+If the input is vague (e.g. "we updated the checkout flow"), ask one targeted follow-up:
+> "What specifically changed? (new fields, changed behaviour, removed feature, new error cases, new load expectation)"
+
+---
+
+## Step 3 — Diff per domain
+
+Compare the new requirements against each domain's current section.
+
+For each domain with changes, identify:
+
+**New requirements** — behaviour or scenarios that did not exist before
+- What: describe the new requirement
+- Domain: API / UI / A11y / Perf
+- Impact on tests: which skill needs to re-run
+
+**Changed requirements** — existing behaviour that has changed
+- What: describe what changed (old → new)
 - Domain
+- Impact on tests: which existing test artifact needs updating
 
-**Tests to RETIRE** — existing scenarios for features that are removed or changed so significantly the old test is invalid
-- What: which test to remove
-- Why: which feature was removed/changed
+**Removed requirements** — features removed or descoped
+- What: describe what was removed
+- Domain
+- Impact on tests: which test scenarios are now invalid
 
-## Step 4 — QA risk statement
+Also produce a QA risk statement for each change:
+> "If we ship without updating [X] tests: <what could break in production>"
 
-For each change, explain the QA risk:
-> "If we ship without adding X test: <what could break in production>"
+---
 
-## Step 5 — Update `qa-plan.md`
+## Step 4 — Update requirements/*.md files
 
-Append an impact section to `qa-plan.md`:
+For each domain file that has changes, prepend a new dated section:
+
+1. Update the version history table (add new row at top, newest first)
+2. Insert new `## [DATE] — [Cycle] — [Description]` section immediately after the `---` separator following the version history table
+3. Write only the CHANGED fields in the new section — include all fields from the template, marking unchanged ones as `[unchanged from previous]` for clarity
+4. Leave all existing dated sections untouched below
+
+Write the updated file using the Edit tool to make targeted changes, or Write tool for a full replacement if easier.
+
+---
+
+## Step 5 — Update qa-plan.md with impact section
+
+```bash
+cat qa-plan.md 2>/dev/null
+```
+
+If `qa-plan.md` exists, append a new dated impact section to it (do NOT prepend — this is additive to the plan, not a replacement):
 
 ```markdown
 ---
 
-## Impact Analysis — <date> — <brief description of change>
+## Impact — [DATE] — [Cycle] — [Description]
 
-### Tests to Add
-| Test scenario | Domain | Risk if skipped |
-|--------------|--------|----------------|
-| <scenario> | <domain> | <risk> |
+### Changed domains: [list]
 
-### Tests to Modify
-| Existing test | Change needed | Domain |
-|--------------|--------------|--------|
-| <test> | <change> | <domain> |
+#### Tests to Add
+| Test scenario | Domain | Requirement ref | Risk if skipped |
+|--------------|--------|----------------|----------------|
+| [scenario] | [domain] | [section in requirements file] | [risk] |
 
-### Tests to Retire
-| Test | Reason |
-|------|--------|
-| <test> | <reason> |
+#### Tests to Modify
+| Existing artifact | Change needed | Domain |
+|------------------|--------------|--------|
+| [artifact] | [what to change] | [domain] |
 
-**Net coverage change:** +<N> tests, ~<N> modified, -<N> retired
+#### Tests to Retire
+| Artifact / scenario | Reason |
+|--------------------|--------|
+| [artifact] | [requirement removed] |
+
+**Net change:** +[N] to add, ~[N] to modify, -[N] to retire
 ```
+
+If `qa-plan.md` does not exist, note it in the output but do not block — the user may not have run `/qa-plan` yet.
+
+---
+
+## Step 6 — Flag domain skills for re-run (Option A)
+
+List which domain skills need to be re-run based on what changed. Do NOT invoke them automatically — present the list and let the user decide:
+
+> "**Domain artifacts that need updating:**
+>
+> | Domain | Skill to re-run | Reason |
+> |--------|----------------|--------|
+> | API | `/qa-api` | [endpoint X added, endpoint Y removed] |
+> | UI | `/qa-ui` | [new checkout flow added] |
+> | A11y | `/qa-a11y` | [new pages introduced by UI changes] |
+> | Perf | `/qa-perf` | [load profile threshold changed] |
+>
+> Re-run these skills before executing tests for the new cycle. `/qa-exec` will pick up the updated artifacts."
+
+Only list domains that actually have changes. Skip domains with no impact.
+
+---
 
 ## Closing
 
 > **Impact analysis complete.**
 >
-> **<N> tests to add, <N> to modify, <N> to retire.**
+> **Requirements updated:** [list files updated]
+> **qa-plan.md:** [updated with impact section / not found — run /qa-plan first]
 >
-> **Highest risk gap:** <most critical missing test and why>.
+> **[N] tests to add, [N] to modify, [N] to retire** across [N] domains.
 >
-> **Recommended next step:** Run `/qa-codegen` to generate the new tests, or run `/qa-<domain>` to execute the updated test plan.
+> **Highest risk gap:** [most critical unaddressed area]
+>
+> **Next steps:**
+> 1. Re-run domain skills listed above to update test artifacts
+> 2. Run `/qa-exec` to execute the updated tests
+
+---
+
+## Failure protocol
+
+| Situation | Response |
+|-----------|---------|
+| requirements/ missing | Direct to `/qa-requirement`; do not continue |
+| No `qa-plan.md` | Note it; continue updating requirements files |
+| Change affects a domain not enabled in config | Flag it to the user — may need to enable the domain via `/qa-onboard` |
+| Jira MCP not available | Fall back to paste input |
+| User cannot describe what changed | Ask: "What was the last working state? What is different now?" |

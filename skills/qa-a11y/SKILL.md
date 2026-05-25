@@ -48,11 +48,14 @@ Invoke the `qa-setup` skill. Do not proceed with any other step until `/qa-setup
 
 ## Step 0 — Read references and config
 
+Read the following files from this skill's `references/` directory. The skill's base directory is injected into your context as `Base directory for this skill: <path>` — use that absolute path to construct each file path:
+
+- `references/wcag-scanning.md`
+- `references/audit-flows.md`
+- `references/keyboard-testing.md`
+- `references/report-generation.md`
+
 ```bash
-cat skills/qa-a11y/references/wcag-scanning.md
-cat skills/qa-a11y/references/audit-flows.md
-cat skills/qa-a11y/references/keyboard-testing.md
-cat skills/qa-a11y/references/report-generation.md
 cat dq-qa.config.json
 ```
 
@@ -63,13 +66,16 @@ Extract:
 - `domains.accessibility.jurisdiction`
 - `requirements.docsPath`
 
-If `requirements.docsPath` is set, read the requirements doc now — use it as context for which flows and pages to audit:
+**Versioning convention — reading:** When reading `requirements/a11y.md`, `requirements/shared.md`, or `qa-plan.md`, extract only the content under the FIRST `## [YYYY-MM-DD]` heading, down to the next `---` separator or the next `## [YYYY-MM-DD]` heading. Ignore everything below.
+
+Read the CURRENT SECTION ONLY of the accessibility requirements file:
 
 ```bash
-cat <requirements.docsPath> 2>/dev/null
-# or if it's a directory:
-ls <requirements.docsPath> && cat <requirements.docsPath>/*.md 2>/dev/null
+cat requirements/a11y.md 2>/dev/null
+cat requirements/shared.md 2>/dev/null
 ```
+
+Use `requirements/a11y.md` as the authoritative source for: WCAG level, jurisdiction, prior audit status, flows to audit, and out-of-scope flows. Use `requirements/shared.md` for: target environment and auth details.
 
 If `domains.accessibility.enabled` is false:
 > "Accessibility testing is disabled in `dq-qa.config.json`. Run `/qa-onboard` and enable the accessibility domain."
