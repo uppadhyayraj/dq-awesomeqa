@@ -29,10 +29,9 @@ Output this checklist at the start, then re-emit with `[x]` after each step comp
 - [ ] Read qa-plan.md for pages to audit
 - [ ] Confirm scope with user + write a11y-test-plan.md
 - [ ] Detect mode (enhance ui-test.yaml or standalone)
-- [ ] Open browser + navigate each page
-- [ ] Add a11y commands contextually per page
+- [ ] Open browser — per page: navigate → observe → write a11y commands → continue to next page
 - [ ] Update YAML config block (wcag_level + jurisdiction)
-- [ ] Save updated YAML
+- [ ] Verify YAML is complete
 ```
 
 ## Tool check — run before anything else
@@ -157,7 +156,7 @@ a11y-cli snapshot -s=<session>
 a11y-cli snapshot --depth=4 -s=<session>
 ```
 
-Then decide which a11y commands to insert **after** that navigation step.
+Then decide which a11y commands to insert **after** that navigation step. Write them to the YAML immediately using the Edit tool — insert at the correct position in `ui-test.yaml` before navigating to the next page. Do not buffer insertions across pages; once you navigate away, the page context is gone.
 
 #### Commands to apply per page
 
@@ -255,7 +254,7 @@ config:
   jurisdiction: <jurisdiction>
 ```
 
-Save the updated file back to `ui-test.yaml` (overwrite in place).
+Update `ui-test.yaml` using the Edit tool — a11y commands were written per page during exploration; this step adds only the `wcag_level` and `jurisdiction` fields to the config block if not already present.
 
 **Closing (primary mode):**
 > "Accessibility steps added to `ui-test.yaml`.
@@ -264,6 +263,10 @@ Save the updated file back to `ui-test.yaml` (overwrite in place).
 > - WCAG level: <level> | Jurisdiction: <jurisdiction>
 >
 > Run `/qa-exec` to execute UI and accessibility tests together."
+
+**Also append to `<domains.accessibility.reportDir>/a11y-test-plan.md`** a new `## Execution Prerequisites` section containing:
+- **Run command:** `a11y-cli script ui-test.yaml` (accessibility checks run as part of the UI interaction script)
+- **Environment variables and setup:** see `<domains.ui.reportDir>/ui-test-plan.md` — no additional variables required for accessibility steps
 
 ---
 
@@ -332,7 +335,7 @@ For each page, snapshot to observe what is there, then apply the same per-page a
 a11y-cli snapshot -s=<session>
 ```
 
-Apply: always `scan` (with `include_keyboard: true`), then conditionally `form`, `alt-text`, `contrast`, `headings`, `keyboard`, `screen-reader` based on what you observe.
+Apply: always `scan` (with `include_keyboard: true`), then conditionally `form`, `alt-text`, `contrast`, `headings`, `keyboard`, `screen-reader` based on what you observe. Write each decided command to the YAML immediately — before navigating to the next page.
 
 Navigate using `goto` or by following natural browser navigation (same rules as qa-ui — never `goto` after a click that navigates).
 
@@ -352,6 +355,10 @@ Append the mandatory closing steps at the end:
 > - WCAG <level> | Jurisdiction: <jurisdiction>
 >
 > Run `/qa-exec` to execute the accessibility audit."
+
+Scan `<domains.accessibility.reportDir>/audit.yaml` for `${ENV_VAR}` tokens. **Also append to `<domains.accessibility.reportDir>/a11y-test-plan.md`** a new `## Execution Prerequisites` section containing:
+- **Run command:** `a11y-cli script <domains.accessibility.reportDir>/audit.yaml`
+- **Required environment variables:** one `export VAR=...` line per `${VAR}` token found in `audit.yaml` (write `none` if no tokens present)
 
 ## Failure protocol
 

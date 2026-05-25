@@ -35,9 +35,9 @@ Output this checklist at the start, then re-emit with `[x]` after each step comp
 - [ ] Confirm scope + write ui-test-plan.md
 - [ ] Write YAML header (before opening browser)
 - [ ] Open app in headed mode
-- [ ] Explore page by page — resolve selectors, write YAML steps
+- [ ] Explore page by page — per element: eval selector → write YAML step → interact
 - [ ] Add report + close steps
-- [ ] Save ui-test.yaml
+- [ ] Verify ui-test.yaml is complete
 - [ ] Tell user required env vars
 ```
 
@@ -162,7 +162,7 @@ Write the `open` YAML step immediately:
 
 For every page in every flow, repeat the per-page loop:
 
-### Per-page loop: snapshot → eval → interact → write YAML step
+### Per-page loop: snapshot → eval → write YAML step → interact
 
 ```bash
 # 1. Snapshot to see live element refs (e5, e12, e22, ...)
@@ -173,27 +173,13 @@ a11y-cli snapshot --depth=4 -s=<session>
 # 2. For each element you need to interact with, resolve a stable selector NOW
 #    Fast: arrow function on snapshot ref
 a11y-cli eval "el => el.id" <ref> -s=<session>
-# → returns "email-input"  → write: fill ref: '#email-input'
+# → returns "email-input"
 a11y-cli eval "el => el.getAttribute('data-testid')" <ref> -s=<session>
 #    Alternative: querySelector on the document
 a11y-cli eval "document.querySelector('[placeholder=\"Email\"]')?.id" -s=<session>
-
-# 3. Interact using snapshot ref for the LIVE action (ref not saved to YAML)
-a11y-cli fill <ref> real@email.com -s=<session>
-a11y-cli fill <ref> actual-password -s=<session>   # real value for live interaction only
-a11y-cli click <ref> -s=<session>
-# Or by CSS selector or role locator:
-a11y-cli click "#login-button" -s=<session>
-a11y-cli click "getByRole('button', { name: 'Sign in' })" -s=<session>
-
-# 4. Screenshot after key actions
-a11y-cli screenshot -s=<session> --name "after-login"
-
-# 5. After navigation — snapshot again for fresh refs on the new page
-a11y-cli snapshot -s=<session>
 ```
 
-Write each YAML step the moment the stable selector is confirmed. Never write from memory after the fact:
+**3. Write the YAML step now — append to `ui-test.yaml` with the resolved selector. Do this before interacting. Interacting changes page state; once a field is filled or a click navigates, the snapshot refs from this state are stale and the selector cannot be recovered without re-navigating.**
 
 ```yaml
   - command: fill
@@ -209,6 +195,22 @@ Write each YAML step the moment the stable selector is confirmed. Never write fr
 
   - command: screenshot
     name: after-login
+```
+
+```bash
+# 4. Interact using snapshot ref for the LIVE action (ref never appears in YAML)
+a11y-cli fill <ref> real@email.com -s=<session>
+a11y-cli fill <ref> actual-password -s=<session>   # real value for live interaction only
+a11y-cli click <ref> -s=<session>
+# Or by CSS selector or role locator:
+a11y-cli click "#login-button" -s=<session>
+a11y-cli click "getByRole('button', { name: 'Sign in' })" -s=<session>
+
+# 5. Screenshot after key actions
+a11y-cli screenshot -s=<session> --name "after-login"
+
+# 6. After navigation — snapshot again for fresh refs on the new page
+a11y-cli snapshot -s=<session>
 ```
 
 **Selector priority** — use the first that resolves via `eval`:
@@ -269,16 +271,22 @@ After all flow steps are written, append:
 
 Save the completed file to `ui-test.yaml` at the project root.
 
-## Step 5 — Tell user required env vars
+## Step 5 — Save execution prerequisites and tell user required env vars
 
-List every `${ENV_VAR}` token in the YAML:
+Scan `ui-test.yaml` for every `${ENV_VAR}` token and collect the unique list.
 
+**Print to chat:**
 > "Before running, export these variables:
 > ```bash
 > export APP_USERNAME=your-test-email@example.com
 > export APP_PASSWORD=your-test-password
 > # ... any others found in the YAML
 > ```"
+
+**Also append to `<domains.ui.reportDir>/ui-test-plan.md`** a new `## Execution Prerequisites` section containing:
+- **Run command:** `a11y-cli script ui-test.yaml`
+- **Required environment variables:** one `export VAR=...` line per `${VAR}` token found in `ui-test.yaml`, formatted as a bash code block
+- **Notes:** any setup details discovered during exploration — feature flags, test account restrictions, known flaky areas
 
 ## Closing
 

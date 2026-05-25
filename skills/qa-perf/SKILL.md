@@ -465,6 +465,13 @@ Common validation errors:
 >
 > Run `/qa-exec` to get the full load test execution steps.
 
+**Also append to `<domains.performance.reportDir>/perf-test-plan.md`** a new `## Execution Prerequisites` section containing:
+- **Run command:** bash block with: `cd ./load-tests`, `cp .env.example .env`, a comment to set `BASE_URL=<actual BASE_URL used during generation>`, then `dq-nbomber run dq-nbomber.yaml --display-console-metrics`
+- **Before running checklist:**
+  - `./load-tests/data/users.csv` — replace placeholder rows with real test accounts (minimum 5–10 rows)
+  - `.env` — confirm `BASE_URL=<BASE_URL>` points to a non-production environment
+- **Thresholds to verify after run:** p99 < `<p99LatencyMs>`ms | ok requests > `<okRequestPercent>`%
+
 **Optional — export to C#:** If the user wants a standalone runnable file or needs to customise test logic beyond what YAML supports:
 
 ```bash

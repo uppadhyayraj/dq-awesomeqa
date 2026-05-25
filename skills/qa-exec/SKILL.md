@@ -114,7 +114,14 @@ If tests fail:
 
 ## Step 3 — Execute UI + Accessibility tests
 
-Tell the user:
+Read `<domains.ui.reportDir>/ui-test-plan.md` if it exists. Find the "Execution Prerequisites" section and display the required environment variables to the user:
+
+> "Before running UI tests, confirm these environment variables are set:
+> [required env vars from ui-test-plan.md Execution Prerequisites section]
+>
+> Confirm when ready to proceed."
+
+Wait for confirmation, then tell the user:
 > "Running UI and accessibility tests…"
 
 Check which test file is available before running:
@@ -150,6 +157,8 @@ If there are failures:
 
 Tell the user:
 > "UI and accessibility tests complete. Ready for load testing."
+
+Read `<domains.performance.reportDir>/perf-test-plan.md` if it exists. Find the "Execution Prerequisites" section and use its run command, checklist items, and threshold values when guiding the user below. If the file does not exist, use the generic instructions as written.
 
 > **⚠️ Load tests generate real traffic. Run against a non-production environment only.**
 >
