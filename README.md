@@ -8,6 +8,8 @@ Run `/qa-init` to begin. It walks you through every phase of the STLC in order, 
 
 If you prefer to work domain by domain, see the individual skills below.
 
+For a full walkthrough — install, configure, plan, execute, and close a test cycle — see **[docs/user-guide.md](docs/user-guide.md)**.
+
 ## The STLC Journey
 
 ```
