@@ -1,6 +1,7 @@
 ---
 name: qa-coverage
 description: Analyze coverage gaps across all testing domains by comparing qa-plan.md against what has actually been implemented. Produces a prioritized list of untested areas with risk ratings. Use at the end of a sprint or before a release to find what's missing.
+disable-model-invocation: true
 ---
 
 # qa-coverage — Coverage Analysis
