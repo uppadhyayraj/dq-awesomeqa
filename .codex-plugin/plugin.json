@@ -1,0 +1,44 @@
+{
+  "name": "dq-awesomeqa",
+  "version": "1.0.0",
+  "description": "Full QA lifecycle plugin for UI, API, Accessibility, and Performance testing — guided by a senior QA consultant",
+  "author": {
+    "name": "Democratize Quality",
+    "url": "https://github.com/uppadhyayraj"
+  },
+  "homepage": "https://github.com/uppadhyayraj/dq-awesomeqa",
+  "repository": "https://github.com/uppadhyayraj/dq-awesomeqa",
+  "license": "MIT",
+  "keywords": [
+    "qa",
+    "testing",
+    "stlc",
+    "accessibility",
+    "performance",
+    "api-testing",
+    "ui-testing",
+    "wcag"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "dq-awesomeqa",
+    "shortDescription": "Guided QA lifecycle — UI, API, Accessibility, and Performance testing in one plugin",
+    "longDescription": "dq-awesomeqa guides QA engineers through the full Software Testing Life Cycle (STLC) with the expertise of a senior QA consultant. Start with /qa-init for a guided journey through requirements, planning, test design, execution, triage, and release readiness — or invoke individual skills directly for each domain.",
+    "developerName": "Democratize Quality",
+    "category": "Testing",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Let's run QA on this project.",
+      "I need to test a new feature end to end.",
+      "Run accessibility and API tests for this release."
+    ],
+    "websiteURL": "https://github.com/uppadhyayraj/dq-awesomeqa",
+    "privacyPolicyURL": "https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement",
+    "termsOfServiceURL": "https://docs.github.com/en/site-policy/github-terms/github-terms-of-service",
+    "brandColor": "#0EA5E9"
+  }
+}

@@ -1,6 +1,164 @@
 # dq-awesomeqa
 
-A Claude Code plugin that guides QA engineers through the full Software Testing Life Cycle — UI, API, Accessibility, and Performance — with the expertise of a senior QA consultant.
+A QA lifecycle plugin that guides QA engineers through the full Software Testing Life Cycle — UI, API, Accessibility, and Performance — with the expertise of a senior QA consultant.
+
+Works with **Claude Code**, **GitHub Copilot (VS Code)**, **Cursor**, **Gemini CLI**, **Codex CLI/App**, and **OpenCode**.
+
+---
+
+## Installation
+
+> Each coding agent needs its own separate installation. If you use more than one, install dq-awesomeqa for each.
+
+### Claude Code
+
+**Option A — Local clone (works today):**
+
+```bash
+git clone https://github.com/uppadhyayraj/dq-awesomeqa
+```
+
+Then register the local path in your Claude Code settings (`~/.claude/settings.json`):
+
+```json
+{
+  "pluginPaths": ["/path/to/dq-awesomeqa"]
+}
+```
+
+Restart Claude Code and run `/qa-init` to verify.
+
+**Option B — Marketplace (once listed):**
+
+```bash
+/plugin install dq-awesomeqa@claude-plugins-official
+```
+
+---
+
+### GitHub Copilot (VS Code)
+
+> Requires VS Code with the GitHub Copilot extension. Agent plugins must be enabled (preview feature).
+
+**Step 1 — Enable agent plugins** in your VS Code user `settings.json`:
+
+```json
+{
+  "chat.plugins.enabled": true
+}
+```
+
+> This must be a **user-level** setting — workspace settings are silently ignored.
+
+**Step 2 — Register the local clone:**
+
+```bash
+git clone https://github.com/uppadhyayraj/dq-awesomeqa
+```
+
+Add to your VS Code user `settings.json`:
+
+```json
+{
+  "chat.plugins.enabled": true,
+  "chat.pluginLocations": {
+    "/path/to/dq-awesomeqa": true
+  }
+}
+```
+
+**Step 3 — Verify:** Restart VS Code and type `/qa-init` in the Copilot chat panel.
+
+For full details and troubleshooting, see [docs/copilot-install.md](docs/copilot-install.md).
+
+---
+
+### Cursor
+
+**Step 1 — Clone the repo:**
+
+```bash
+git clone https://github.com/uppadhyayraj/dq-awesomeqa
+```
+
+**Step 2 — Install via Cursor agent chat:**
+
+```
+/add-plugin /path/to/dq-awesomeqa
+```
+
+Or search for `dq-awesomeqa` in the Cursor plugin marketplace once listed.
+
+**Step 3 — Verify:** Open a Cursor agent session and type `/qa-init`.
+
+---
+
+### Gemini CLI
+
+Install directly from GitHub:
+
+```bash
+gemini extensions install https://github.com/uppadhyayraj/dq-awesomeqa
+```
+
+To update later:
+
+```bash
+gemini extensions update dq-awesomeqa
+```
+
+**Verify:** Start a Gemini CLI session and type `/qa-init`.
+
+---
+
+### Codex CLI
+
+Open the plugin search interface and search for `dq-awesomeqa`:
+
+```
+/plugins
+```
+
+Search for `dq-awesomeqa` and select **Install Plugin**.
+
+**Verify:** Run `/qa-init` in a Codex session.
+
+---
+
+### Codex App
+
+Navigate to **Plugins** in the sidebar, find `dq-awesomeqa` in the Testing section, and click **+** to install.
+
+---
+
+### OpenCode
+
+Add to your `opencode.json`:
+
+```json
+{
+  "plugin": ["dq-awesomeqa@git+https://github.com/uppadhyayraj/dq-awesomeqa.git"]
+}
+```
+
+Restart OpenCode — it installs automatically and registers all `/qa-*` skills.
+
+For full details, see [.opencode/INSTALL.md](.opencode/INSTALL.md).
+
+---
+
+## Prerequisites (all platforms)
+
+| Requirement | Used by |
+|-------------|---------|
+| Node.js | Hooks (safety, audit, sanitize) |
+| `a11y-cli` | UI + Accessibility tests (`/qa-setup` installs this) |
+| `dq-nbomber` | Performance tests (`/qa-setup` installs this) |
+| `democratize-quality` MCP server | API tests (run `/qa-setup` to register) |
+
+Run `/qa-setup` after installing the plugin — it installs the CLI tools and registers the MCP server.
+
+---
 
 ## Getting started
 

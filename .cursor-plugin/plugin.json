@@ -1,0 +1,25 @@
+{
+  "name": "dq-awesomeqa",
+  "displayName": "dq-awesomeqa",
+  "description": "Full QA lifecycle plugin for UI, API, Accessibility, and Performance testing — guided by a senior QA consultant",
+  "version": "1.0.0",
+  "author": {
+    "name": "Democratize Quality",
+    "url": "https://github.com/uppadhyayraj"
+  },
+  "homepage": "https://github.com/uppadhyayraj/dq-awesomeqa",
+  "repository": "https://github.com/uppadhyayraj/dq-awesomeqa",
+  "license": "MIT",
+  "keywords": [
+    "qa",
+    "testing",
+    "stlc",
+    "accessibility",
+    "performance",
+    "api-testing",
+    "ui-testing",
+    "wcag"
+  ],
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks-cursor.json"
+}
