@@ -1,6 +1,7 @@
 ---
 name: qa-report
 description: Read domain execution results and produce qa-summary.md. Consolidates API execution stats, UI test results, accessibility violation counts, and performance threshold outcomes into an executive summary with per-domain findings and links to full reports.
+disable-model-invocation: true
 ---
 
 # qa-report — QA Summary Consolidator

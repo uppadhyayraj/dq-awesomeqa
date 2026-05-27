@@ -2,6 +2,7 @@
 name: qa-exec
 description: Execute all domain tests in recommended order — API → UI+Accessibility → Performance. Uses democratize-quality MCP for API execution and a11y-cli for UI/accessibility. Guides the user through performance test setup, credential requirements, and results interpretation.
 allowed-tools: Bash(a11y-cli:*, claude:*, ls:*), Read
+disable-model-invocation: true
 ---
 
 # qa-exec — Test Execution Orchestrator

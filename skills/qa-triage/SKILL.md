@@ -2,6 +2,7 @@
 name: qa-triage
 description: Analyze test failures from any domain, categorize by severity and type, identify root causes, and produce a structured triage report with recommended owners and next actions. Use after any test run that produced failures.
 allowed-tools: Bash(curl:*, ls:*), Read, Write
+disable-model-invocation: true
 ---
 
 # qa-triage — Failure Triage
