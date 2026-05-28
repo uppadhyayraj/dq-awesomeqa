@@ -22,7 +22,17 @@ Then register the local path in your Claude Code settings (`~/.claude/settings.j
 
 ```json
 {
-  "pluginPaths": ["/path/to/dq-awesomeqa"]
+  "enabledPlugins": {
+    "dq-awesomeqa@dq-awesomeqa": true
+  },
+  "extraKnownMarketplaces": {
+    "democratize-quality": {
+      "source": {
+        "source": "directory",
+        "path": "/path/to/dq-awesomeqa"
+      }
+    }
+  }
 }
 ```
 
