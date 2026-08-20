@@ -26,7 +26,7 @@ Then register the local path in your Claude Code settings (`~/.claude/settings.j
     "dq-awesomeqa@dq-awesomeqa": true
   },
   "extraKnownMarketplaces": {
-    "democratize-quality": {
+    "dq-awesomeqa": {
       "source": {
         "source": "directory",
         "path": "/path/to/dq-awesomeqa"
@@ -265,6 +265,27 @@ If you prefer to work domain by domain, see the individual skills below.
 ## Domain scope
 
 You don't have to run all domains in every cycle. `/qa-init` (and `/qa-plan`) ask which domains to include at the start of each cycle. A single-domain run (e.g. API only, or Performance only) is a first-class path.
+
+## Contributing
+
+We welcome contributions! To contribute:
+
+1. **Create an issue** — Describe the problem or feature you want to add
+2. **Fork the repository** — Clone your fork locally
+3. **Create a feature branch** — Make your changes
+4. **Submit a Pull Request** — Reference the issue in your PR
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+
+---
+
+## License
+
+This project is licensed under the **GNU Affero General Public License v3.0** (AGPL-3.0).
+
+See [LICENSE](LICENSE) for details.
+
+---
 
 ## Phase 2 (coming)
 
