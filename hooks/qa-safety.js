@@ -26,6 +26,17 @@
 
 const { readFileSync } = require('fs');
 
+// ── Shared file classifiers ───────────────────────────────────────────────────
+// Application source. Extended beyond the original list: shell, SQL, infra,
+// JVM/BEAM/other languages were previously unprotected.
+const SOURCE_EXT = /\.(ts|tsx|mjs|cjs|jsx|js|py|java|go|rb|php|cs|cpp|cc|c|h|hpp|rs|swift|kt|kts|vue|svelte|sh|bash|zsh|ps1|sql|tf|tfvars|gradle|groovy|scala|clj|cljs|ex|exs|erl|lua|dart|pl|r|vb|m|mm)$/i;
+
+// Project / build files that carry a "safe" extension but are still source.
+const PROJECT_FILE = /(^|\/)(Dockerfile|Makefile|Gemfile|Rakefile|Procfile|package\.json|package-lock\.json|yarn\.lock|pnpm-lock\.yaml|tsconfig[^/]*\.json|jsconfig\.json|pom\.xml|build\.gradle[^/]*|[^/]+\.csproj|[^/]+\.sln|docker-compose[^/]*\.ya?ml|\.env[^/]*)$/i;
+
+// CI / deployment pipeline definitions.
+const CI_PATH = /(^|\/)(\.github\/workflows|\.gitlab-ci\.yml|\.circleci|azure-pipelines[^/]*\.ya?ml|Jenkinsfile)/i;
+
 let raw = '';
 try { raw = readFileSync(0, 'utf-8').trim(); } catch { process.exit(0); }
 
@@ -152,6 +163,43 @@ if (toolName === 'Bash') {
     );
   }
 
+  // 11. Writing to source files via the shell (bypasses the Write/Edit checks)
+  const redirect = cmd.match(/>>?\s*([^\s;|&<>]+)/);
+  if (redirect && (SOURCE_EXT.test(redirect[1]) || PROJECT_FILE.test(redirect[1]) || CI_PATH.test(redirect[1]))) {
+    block(
+      'Redirecting shell output into an application source file is not allowed during QA sessions.\n' +
+      `Target: ${redirect[1]}`
+    );
+  }
+
+  const inPlace = cmd.match(/\b(?:sed|perl)\b[^;|&]*\s-i(?:\.\S+)?\b[^;|&]*?([^\s;|&]+)\s*$/);
+  if (inPlace && (SOURCE_EXT.test(inPlace[1]) || PROJECT_FILE.test(inPlace[1]) || CI_PATH.test(inPlace[1]))) {
+    block(
+      'In-place editing (sed -i / perl -i) of application source files is not allowed during QA sessions.\n' +
+      `Target: ${inPlace[1]}`
+    );
+  }
+
+  const teeTarget = cmd.match(/\btee\b(?:\s+-a)?\s+([^\s;|&]+)/);
+  if (teeTarget && (SOURCE_EXT.test(teeTarget[1]) || PROJECT_FILE.test(teeTarget[1]) || CI_PATH.test(teeTarget[1]))) {
+    block(
+      'Writing to an application source file via tee is not allowed during QA sessions.\n' +
+      `Target: ${teeTarget[1]}`
+    );
+  }
+
+  // 12. Destructive git operations against the working tree or history
+  if (/\bgit\s+reset\s+--hard\b/i.test(cmd) ||
+      /\bgit\s+clean\s+-[a-z]*[fd]/i.test(cmd) ||
+      /\bgit\s+checkout\s+--\s/i.test(cmd) ||
+      /\bgit\s+restore\b(?!.*--staged\s*$)/i.test(cmd) ||
+      /\bgit\s+push\b.*(--force|-f\b)/i.test(cmd)) {
+    block(
+      'Destructive git operations are not allowed during QA sessions.\n' +
+      'They can discard the developer\'s uncommitted work. Report the issue instead.'
+    );
+  }
+
   // 10. Global pip installs
   if (/\bpip\s+install\b/i.test(cmd) && !/\.venv|venv\/|virtualenv/.test(cmd)) {
     block(
@@ -170,36 +218,36 @@ if (toolName === 'Edit' || toolName === 'Write') {
   // Always allow: system tmp dirs
   if (/^\/tmp\//i.test(filePath) || /^\/var\/folders\//i.test(filePath)) process.exit(0);
 
-  // Always allow: this plugin's own files (hooks/, skills/, .claude/, docs/)
-  if (/\/(hooks|skills|\.claude|docs)\//.test(filePath)) process.exit(0);
+  // Always allow: this plugin's own files — anchored to the plugin root, NOT a bare
+  // path segment. Matching '/hooks/' anywhere let src/hooks/useAuth.ts through.
+  const projectRoot = process.cwd().replace(/\\/g, '/');
+  const pluginRoot = String(process.env.CLAUDE_PLUGIN_ROOT || '').replace(/\\/g, '/');
+  // Only trust the plugin root when it lives OUTSIDE the project under test.
+  // If the plugin is installed inside the project, this allow would disable
+  // every source-code check below.
+  if (pluginRoot && pluginRoot !== projectRoot &&
+      !projectRoot.startsWith(pluginRoot + '/') &&
+      filePath.startsWith(pluginRoot + '/')) process.exit(0);
 
   // Always allow: QA output artifacts and config
-  if (/qa-reports/i.test(filePath) || /a11y-artifacts/i.test(filePath)) process.exit(0);
+  if (/(^|\/)(qa-reports|a11y-artifacts)\//i.test(filePath)) process.exit(0);
   if (/dq-qa\.config\.json$/i.test(filePath)) process.exit(0);
-  if (/qa-(plan|summary|triage|coverage|exec).*\.(md|json)$/i.test(filePath)) process.exit(0);
+  if (/qa-(plan|summary|triage|coverage|exec)[^/]*\.(md|json)$/i.test(filePath)) process.exit(0);
+
+  // 7. Block application source code edits.
+  // Runs BEFORE the data/config allow-list so package.json et al cannot slip through.
+  if (SOURCE_EXT.test(filePath) || PROJECT_FILE.test(filePath) || CI_PATH.test(filePath)) {
+    block(
+      'Editing application source or project files is not allowed during QA sessions.\n' +
+      `File: ${filePath}\n\n` +
+      'QA role is read-only observation and testing. Report issues to the developer.'
+    );
+  }
+
+  // Allow remaining data / documentation files
   if (/\.(yaml|yml|json|html|md|txt|csv|log)$/i.test(filePath)) process.exit(0);
 
-  // 7. Block application source code edits
-  const appExtensions = /\.(ts|tsx|mjs|cjs|jsx|py|java|go|rb|php|cs|cpp|cc|c|h|hpp|rs|swift|kt|vue|svelte)$/i;
-  if (appExtensions.test(filePath)) {
-    block(
-      'Editing application source files is not allowed during QA sessions.\n' +
-      `File: ${filePath}\n\n` +
-      'QA role is read-only observation and testing. Report issues to the developer.'
-    );
-  }
-
-  // Block bare .js writes outside hooks/ or skills/ (those are already allowed above)
-  if (/\.js$/i.test(filePath)) {
-    block(
-      'Editing JavaScript source files outside the plugin directory is not allowed during QA sessions.\n' +
-      `File: ${filePath}\n\n` +
-      'QA role is read-only observation and testing. Report issues to the developer.'
-    );
-  }
-
   // 8. Block writes outside project root (excluding /tmp)
-  const projectRoot = process.cwd().replace(/\\/g, '/');
   if (!filePath.startsWith(projectRoot) && !filePath.startsWith('/tmp/')) {
     block(
       'Writing files outside the project root is not allowed during QA sessions.\n' +

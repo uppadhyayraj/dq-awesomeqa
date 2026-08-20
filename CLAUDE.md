@@ -86,10 +86,18 @@ The safety hook allows writes only to:
 - `qa-reports/`, `a11y-artifacts/` — test output artifacts
 - `qa-plan.md`, `qa-summary.md`, `qa-triage*.md`, `qa-coverage*.md`, `qa-exec*.md` — QA documents
 - `dq-qa.config.json` — project configuration
-- `hooks/`, `skills/`, `.claude/`, `docs/` — plugin own files
-- `.yaml`, `.yml`, `.json`, `.html`, `.md`, `.txt`, `.csv`, `.log` — data/config files
+- The plugin's own directory (`$CLAUDE_PLUGIN_ROOT`), only when it is installed outside the project under test
+- `.yaml`, `.yml`, `.json`, `.html`, `.md`, `.txt`, `.csv`, `.log` — data/config files, **except** the project files listed below
 
-**Blocked:** `.ts`, `.tsx`, `.js` (outside plugin dirs), `.py`, `.go`, `.rb`, `.java`, and all other application source extensions.
+**Blocked:**
+
+- All application source extensions: `.ts`, `.tsx`, `.js`, `.jsx`, `.py`, `.go`, `.rb`, `.java`, `.cs`, `.php`, `.rs`, `.kt`, `.swift`, `.vue`, `.svelte`, `.sh`, `.sql`, `.tf`, and others
+- Project and build files even though their extension looks safe: `package.json`, `package-lock.json`, `tsconfig*.json`, `Dockerfile`, `Makefile`, `docker-compose*.yml`, `pom.xml`, `build.gradle`, `*.csproj`, `.env*`
+- CI and deployment pipelines: `.github/workflows/`, `.gitlab-ci.yml`, `Jenkinsfile`, `azure-pipelines*.yml`
+- Shell writes that bypass the Write/Edit tools: output redirection (`>`, `>>`), `sed -i`, `perl -i`, `tee` targeting any of the above
+- Destructive git operations: `git reset --hard`, `git clean -fd`, `git checkout -- `, `git restore`, `git push --force`
+
+Run `bash hooks/test-safety.sh` to verify these constraints on your machine.
 
 ---
 

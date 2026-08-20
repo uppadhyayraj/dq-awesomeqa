@@ -17,7 +17,7 @@ This guide covers how to validate, install, and test the plugin on your local ma
 Run this from the repo root. It checks that `plugin.json` is well-formed and all referenced files exist.
 
 ```bash
-cd /Users/rajuppadhyay/dq-awesomeqa
+cd /path/to/dq-awesomeqa
 claude plugin validate .
 ```
 
@@ -107,7 +107,7 @@ echo "Exit code: $?"   # expect: 0
 ### 2b — SessionStart hook
 
 ```bash
-CLAUDE_PLUGIN_ROOT=/Users/rajuppadhyay/dq-awesomeqa \
+CLAUDE_PLUGIN_ROOT=/path/to/dq-awesomeqa \
   bash hooks/session-start
 ```
 
@@ -115,7 +115,7 @@ Expected output: JSON with `hookSpecificOutput.additionalContext` containing the
 
 Verify:
 ```bash
-CLAUDE_PLUGIN_ROOT=/Users/rajuppadhyay/dq-awesomeqa \
+CLAUDE_PLUGIN_ROOT=/path/to/dq-awesomeqa \
   bash hooks/session-start | python3 -m json.tool
 ```
 
@@ -125,7 +125,7 @@ Should parse as valid JSON without errors.
 
 ```bash
 echo '{"usage": {"input_tokens": 2100}}' | \
-  CLAUDE_PLUGIN_ROOT=/Users/rajuppadhyay/dq-awesomeqa \
+  CLAUDE_PLUGIN_ROOT=/path/to/dq-awesomeqa \
   bash hooks/stop
 ```
 
@@ -141,7 +141,7 @@ Expected output:
 
 Test fallback (no jq / no token data):
 ```bash
-echo '{}' | CLAUDE_PLUGIN_ROOT=/Users/rajuppadhyay/dq-awesomeqa bash hooks/stop
+echo '{}' | CLAUDE_PLUGIN_ROOT=/path/to/dq-awesomeqa bash hooks/stop
 ```
 
 Expected: falls back to `"use /status to check token usage"` message.
@@ -174,7 +174,7 @@ cat > ~/claude-local-plugins/.claude-plugin/marketplace.json << 'EOF'
 EOF
 
 # Symlink the plugin into the marketplace (edits to the plugin are reflected immediately)
-ln -sf /Users/rajuppadhyay/dq-awesomeqa ~/claude-local-plugins/plugins/dq-awesomeqa
+ln -sf /path/to/dq-awesomeqa ~/claude-local-plugins/plugins/dq-awesomeqa
 ```
 
 ### 3b — Register the marketplace with Claude Code
@@ -291,7 +291,7 @@ Because the plugin is symlinked into the marketplace, changes to SKILL.md files 
 
 ```bash
 # Edit a skill
-vim /Users/rajuppadhyay/dq-awesomeqa/skills/qa-setup/SKILL.md
+vim /path/to/dq-awesomeqa/skills/qa-setup/SKILL.md
 
 # Start a new Claude Code session — the updated skill is available immediately
 claude
